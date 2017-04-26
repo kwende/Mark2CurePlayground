@@ -4,14 +4,16 @@ from nltk.stem.lancaster import LancasterStemmer
 from nltk.stem import WordNetLemmatizer
 import nltk
 
-nltk.download()
+#nltk.download()
 
 #stemm =  PorterStemmer()
 #stemm = SnowballStemmer("english")
 stemm = LancasterStemmer()
 
+nltk.data.path.append('D:/PythonData/nltk_data')
+
 wnl = WordNetLemmatizer()
-print(wnl.lemmatize('dogs'))
+print(wnl.lemmatize('seizures'))
 
 plurals = ['seizures']
 

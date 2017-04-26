@@ -23,6 +23,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ExamineOntologies.py" />
+    <Compile Include="InspectClasses.py" />
     <Compile Include="NLTK Examples\Stemming.py">
       <SubType>Code</SubType>
     </Compile>
