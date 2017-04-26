@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ff1defd4-06c1-43f0-91f2-55d8c44b6a7d</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ExamineOntologies.py</StartupFile>
+    <StartupFile>NLTK Examples\Stemming.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,6 +23,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ExamineOntologies.py" />
+    <Compile Include="NLTK Examples\Stemming.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="NLTK Examples\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
