@@ -14,26 +14,45 @@ def get_json(url):
     r = urllib.request.urlopen(request)
     return json.loads(r.read().decode('utf-8'))
 
-#1. Do a basic, dumb search using the original search string. include all ontologies (we can break it up later). 
+ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
 
-#2. Take the response and break it up into individual ontologies. That way we can investigate the quality of the response for each ontology. 
-
-searchString = 'profound hypoproteinemia with massive ascites'
-requestUrl = REST_URL + "/search?q=" + urllib.parse.quote_plus(searchString) + "ontologies=DOID%2CHP%2CMEDDRA%2CMESH%2CRCD%2CSNOMEDCT&exact_match=false" #search for this class
+#1.  Do a basic, dumb search using the original search string.  include all
+#ontologies (we can break it up later).
+searchString = 'profound hypoproteinemia with massive ascites'.lower()
+ontologiesString = "&ontologies="
+for ontologyOfInterest in ontologiesOfInterest:
+    ontologiesString = ontologiesString + ontologyOfInterest + ","
+requestUrl = REST_URL + "/search?q=" + urllib.parse.quote_plus(searchString) + ontologiesString + "&exact_match=false" #search for this class
 jsonResponses = get_json(requestUrl) # get the json
 
-prefResponses = []
-for jsonResponse in [r for r in jsonResponses["collection"] if r['matchType'] == 'prefLabel']: #for each response that is a preferred label
-    prefLabel = jsonResponse['prefLabel'] #get the response
-    prefResponses.append(prefLabel)
+#2.  Take the response and break it up into individual ontologies.  That way we
+#can investigate the quality of the response for each ontology.
+returnedOntologies = {}
+for jsonResponse in jsonResponses["collection"]:
+    ontology = get_json(jsonResponse['links']['ontology'])
+    acronym = ontology['acronym'].upper()
 
-tokens = word_tokenize()
+    if acronym in ontologiesOfInterest:
+        if not acronym in returnedOntologies:
+            returnedOntologies[acronym] = []
 
-pos = nltk.pos_tag(tokens)
+        returnedOntologies[acronym].append(jsonResponse['prefLabel'])
 
-for p in pos:
-    if(p[1] == 'NN' or p[1] == 'NNS'):
-        print(p[0])
-    #print(p[0] + ':' + str(v))
+#3.  Which ontologies are missing?
+missingOntologies = []
+for ontologyOfInterest in ontologiesOfInterest:
+    if not ontologyOfInterest in returnedOntologies.keys():
+        missingOntologies.append(ontologyOfInterest)
 
-print()
+#4.  Which ontologies had an exact match?
+ontologiesWithExactMatch = []
+for key in returnedOntologies.keys():
+    phrases = returnedOntologies[key]
+    if len([p for p in phrases if p.lower() == searchString]) > 0:
+        ontologiesWithExactMatch.append(key)
+
+#5. Find the closest match out of the ones we do have. Trim the words to their 
+# stems, and then count how many stem matches we get for each of the responses to the
+# search phrase. Order by response quality. Return top-3. Be mindful as to NOT return
+# the same phrase. 
+
