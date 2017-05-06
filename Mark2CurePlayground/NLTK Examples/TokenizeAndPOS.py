@@ -6,7 +6,6 @@ import urllib.parse
 import json
 
 REST_URL = "http://data.bioontology.org"
-nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
 
 def get_json(url):
     request = urllib.request.Request(url, data = None, headers ={
@@ -39,19 +38,23 @@ def build_stems_with_weights(input):
                weight = .5
     return wordAndWeight
 
+def build_url(baseUrl, ontologies, searchString):
+    ontologiesString = "&ontologies="
+    for ontology in ontologies:
+        ontologiesString = ontologiesString + ontology + ","
+    requestUrl = baseUrl + "/search?q=" + urllib.parse.quote_plus(searchString) + ontologiesString + "&exact_match=false" #search for this class
+    return requestUrl
 
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
 ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
 
 #1.  Do a basic, dumb search using the original search string.  include all
 #ontologies (we can break it up later).
-searchString = 'profound hypoproteinemia with massive ascites'.lower()
+searchString = 'Heat stress'.lower()
 tokens = word_tokenize(searchString)
 tags = nltk.pos_tag(tokens)
 
-ontologiesString = "&ontologies="
-for ontologyOfInterest in ontologiesOfInterest:
-    ontologiesString = ontologiesString + ontologyOfInterest + ","
-requestUrl = REST_URL + "/search?q=" + urllib.parse.quote_plus(searchString) + ontologiesString + "&exact_match=false" #search for this class
+requestUrl = build_url(REST_URL, ontologiesOfInterest, searchString)
 jsonResponses = get_json(requestUrl) # get the json
 
 #2.  Take the response and break it up into individual ontologies.  That way we
@@ -118,3 +121,5 @@ for key in returnedOntologies.keys():
         topMatches[key] = [k for k,v in scores.items() if v == highestScore] 
 
 print(topMatches)
+print(ontologiesWithExactMatch)
+print(missingOntologies)
