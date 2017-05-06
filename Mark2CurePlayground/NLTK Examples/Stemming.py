@@ -4,7 +4,7 @@ from nltk.stem.lancaster import LancasterStemmer
 from nltk.stem import WordNetLemmatizer
 import nltk
 
-#nltk.download()
+nltk.download()
 
 #stemm =  PorterStemmer()
 #stemm = SnowballStemmer("english")

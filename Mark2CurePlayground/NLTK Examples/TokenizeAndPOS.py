@@ -1,3 +1,4 @@
+from nltk.stem import *
 import nltk
 from nltk import word_tokenize
 import urllib.request
@@ -5,7 +6,7 @@ import urllib.parse
 import json
 
 REST_URL = "http://data.bioontology.org"
-nltk.data.path.append('D:/PythonData/nltk_data')
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
 
 def get_json(url):
     request = urllib.request.Request(url, data = None, headers ={
@@ -14,11 +15,39 @@ def get_json(url):
     r = urllib.request.urlopen(request)
     return json.loads(r.read().decode('utf-8'))
 
+def build_stems(input):
+    porter = PorterStemmer()
+    tokens = word_tokenize(input)
+    tags = nltk.pos_tag(tokens)
+    okayTags = ['NN','NNS']    
+
+    ret = [porter.stem(t[0]) for t in tags if t[1] in okayTags]
+    return ret
+
+def build_stems_with_weights(input):
+    porter = PorterStemmer()
+    tokens = word_tokenize(input)
+    tags = nltk.pos_tag(tokens)
+    okayTags = ['NN','NNS']
+
+    wordAndWeight = {}
+    weight = 1
+    for tag in tags:
+        if tag[1] in okayTags:
+            wordAndWeight[porter.stem(tag[0])] = weight
+        elif tag[1] == "IN":
+               weight = .5
+    return wordAndWeight
+
+
 ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
 
 #1.  Do a basic, dumb search using the original search string.  include all
 #ontologies (we can break it up later).
 searchString = 'profound hypoproteinemia with massive ascites'.lower()
+tokens = word_tokenize(searchString)
+tags = nltk.pos_tag(tokens)
+
 ontologiesString = "&ontologies="
 for ontologyOfInterest in ontologiesOfInterest:
     ontologiesString = ontologiesString + ontologyOfInterest + ","
@@ -51,8 +80,41 @@ for key in returnedOntologies.keys():
     if len([p for p in phrases if p.lower() == searchString]) > 0:
         ontologiesWithExactMatch.append(key)
 
-#5. Find the closest match out of the ones we do have. Trim the words to their 
-# stems, and then count how many stem matches we get for each of the responses to the
-# search phrase. Order by response quality. Return top-3. Be mindful as to NOT return
-# the same phrase. 
+#5.  Find the closest match out of the ones we do have.  Trim the words to
+#their
+# stems, and then count how many stem matches we get for each of the responses
+# to the
+# search phrase.  Order by response quality.  Return top-3.  Be mindful as to
+# NOT return
+# the same phrase.
+searchStringStems = build_stems_with_weights(searchString)
 
+topMatches = {}
+for key in returnedOntologies.keys():
+    if not key in ontologiesWithExactMatch and not key in missingOntologies:
+        returnedPhrases = returnedOntologies[key]
+        
+        scores = {}
+        highestScore = -100000
+        for returnedPhrase in returnedPhrases:
+            returnedPhraseStems = build_stems(returnedPhrase)
+            
+            returnedPhraseTokens = word_tokenize(returnedPhrase)
+
+            score = 0
+            lenOfPhraseTokens = len(returnedPhraseTokens)
+
+            for k,v in searchStringStems.items():
+                if k in returnedPhraseStems:
+                    score = score + v
+                else:
+                    score = score - .1 * lenOfPhraseTokens
+
+            if score > highestScore:
+                highestScore = score
+
+            scores[returnedPhrase] = score
+
+        topMatches[key] = [k for k,v in scores.items() if v == highestScore] 
+
+print(topMatches)
