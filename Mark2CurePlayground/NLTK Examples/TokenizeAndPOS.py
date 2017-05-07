@@ -7,6 +7,14 @@ import json
 
 REST_URL = "http://data.bioontology.org"
 
+class ResultWithSynonyms:
+    PrefLabel = ""
+    Synonyms = []
+
+    def __init__(self, prefLabel, synonyms):
+        self.PrefLabel = prefLabel
+        self.Synonyms = synonyms
+
 def get_json(url):
     request = urllib.request.Request(url, data = None, headers ={
         'Authorization': 'apikey token=' + '5cddf159-a650-4458-b802-cb5936567668'    
@@ -123,3 +131,9 @@ for key in returnedOntologies.keys():
 print(topMatches)
 print(ontologiesWithExactMatch)
 print(missingOntologies)
+
+for missingOntology in missingOntologies:
+    for token in tokens:
+        url = build_url(REST_URL, [missingOntology], token)
+        jsonResponse = get_json(url)
+        print(url)
