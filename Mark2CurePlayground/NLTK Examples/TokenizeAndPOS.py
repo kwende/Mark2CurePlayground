@@ -76,7 +76,12 @@ for jsonResponse in jsonResponses["collection"]:
         if not acronym in returnedOntologies:
             returnedOntologies[acronym] = []
 
-        returnedOntologies[acronym].append(jsonResponse['prefLabel'])
+        synonyms = []
+        if 'synonym' in jsonResponse:
+            synonyms = jsonResponse['synonym']
+
+        res = ResultWithSynonyms(jsonResponse['prefLabel'], synonyms)
+        returnedOntologies[acronym].append(res)
 
 #3.  Which ontologies are missing?
 missingOntologies = []
@@ -88,7 +93,7 @@ for ontologyOfInterest in ontologiesOfInterest:
 ontologiesWithExactMatch = []
 for key in returnedOntologies.keys():
     phrases = returnedOntologies[key]
-    if len([p for p in phrases if p.lower() == searchString]) > 0:
+    if len([p for p in phrases if p.PrefLabel.lower() == searchString]) > 0:
         ontologiesWithExactMatch.append(key)
 
 #5.  Find the closest match out of the ones we do have.  Trim the words to
@@ -108,9 +113,9 @@ for key in returnedOntologies.keys():
         scores = {}
         highestScore = -100000
         for returnedPhrase in returnedPhrases:
-            returnedPhraseStems = build_stems(returnedPhrase)
+            returnedPhraseStems = build_stems(returnedPhrase.PrefLabel)
             
-            returnedPhraseTokens = word_tokenize(returnedPhrase)
+            returnedPhraseTokens = word_tokenize(returnedPhrase.PrefLabel)
 
             score = 0
             lenOfPhraseTokens = len(returnedPhraseTokens)
@@ -124,7 +129,7 @@ for key in returnedOntologies.keys():
             if score > highestScore:
                 highestScore = score
 
-            scores[returnedPhrase] = score
+            scores[returnedPhrase.PrefLabel] = score
 
         topMatches[key] = [k for k,v in scores.items() if v == highestScore] 
 
