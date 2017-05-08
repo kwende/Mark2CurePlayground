@@ -83,7 +83,9 @@ def compute_scores_for_phrases(phrases):
 
     return scores
 
-nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+nltk.data.path.append('D:/PythonData/nltk_data')
+
 ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
 
 #1.  Do a basic, dumb search using the original search string.  include all
@@ -164,4 +166,12 @@ for missingOntology in missingOntologies:
             phrases.append(phrase)
 
         scores = compute_scores_for_phrases(phrases)
-        print('hello')
+        
+        highestScore = -100000
+        for k,v in scores.items():
+            if v > highestScore:
+                highestScore = v
+    
+        topMatches[missingOntology] = [k for k,v in scores.items() if v == highestScore] 
+
+print()
