@@ -53,6 +53,36 @@ def build_url(baseUrl, ontologies, searchString):
     requestUrl = baseUrl + "/search?q=" + urllib.parse.quote_plus(searchString) + ontologiesString + "&exact_match=false" #search for this class
     return requestUrl
 
+def compute_score_for_stems(phrase, searchStringStems):
+    phraseStems = build_stems(phrase)
+    phraseTokens = word_tokenize(phrase)
+
+    score = 0
+    lenOfPhraseTokens = len(phraseTokens)
+
+    for k,v in searchStringStems.items():
+        if k in phraseStems:
+            score = score + v
+        else:
+            score = score - .1 * lenOfPhraseTokens
+
+    return score
+
+def compute_scores_for_phrases(phrases):
+    scores = {}
+    highestScore = -100000
+    for phrase in phrases:
+        score = compute_score_for_stems(phrase.PrefLabel, searchStringStems)
+
+        for synonym in phrase.Synonyms:
+            synonymScore = compute_score_for_stems(synonym, searchStringStems)
+            if synonymScore > score:
+                score = synonymScore
+
+        scores[phrase.PrefLabel] = score
+
+    return scores
+
 nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
 ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
 
@@ -110,27 +140,13 @@ for key in returnedOntologies.keys():
     if not key in ontologiesWithExactMatch and not key in missingOntologies:
         returnedPhrases = returnedOntologies[key]
         
-        scores = {}
+        scores = compute_scores_for_phrases(returnedPhrases)
+        
         highestScore = -100000
-        for returnedPhrase in returnedPhrases:
-            returnedPhraseStems = build_stems(returnedPhrase.PrefLabel)
-            
-            returnedPhraseTokens = word_tokenize(returnedPhrase.PrefLabel)
-
-            score = 0
-            lenOfPhraseTokens = len(returnedPhraseTokens)
-
-            for k,v in searchStringStems.items():
-                if k in returnedPhraseStems:
-                    score = score + v
-                else:
-                    score = score - .1 * lenOfPhraseTokens
-
-            if score > highestScore:
-                highestScore = score
-
-            scores[returnedPhrase.PrefLabel] = score
-
+        for k,v in scores.items():
+            if v > highestScore:
+                highestScore = v
+    
         topMatches[key] = [k for k,v in scores.items() if v == highestScore] 
 
 print(topMatches)
@@ -141,4 +157,11 @@ for missingOntology in missingOntologies:
     for token in tokens:
         url = build_url(REST_URL, [missingOntology], token)
         jsonResponse = get_json(url)
-        print(url)
+        
+        phrases = []
+        for item in jsonResponse["collection"]:
+            phrase = ResultWithSynonyms(item["prefLabel"], item["synonym"])
+            phrases.append(phrase)
+
+        scores = compute_scores_for_phrases(phrases)
+        print('hello')
