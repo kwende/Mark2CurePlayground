@@ -4,6 +4,7 @@ from nltk import word_tokenize
 import urllib.request
 import urllib.parse
 import json
+import lxml.etree
 
 REST_URL = "http://data.bioontology.org"
 
@@ -68,7 +69,7 @@ def compute_score_for_stems(phrase, searchStringStems):
 
     return score
 
-def compute_scores_for_phrases(phrases):
+def compute_scores_for_phrases(phrases, searchStringStems):
     scores = {}
     highestScore = -100000
     for phrase in phrases:
@@ -83,95 +84,104 @@ def compute_scores_for_phrases(phrases):
 
     return scores
 
+def do_it(searchString, ontologiesOfInterest):
+    tokens = word_tokenize(searchString)
+    tags = nltk.pos_tag(tokens)
+
+    requestUrl = build_url(REST_URL, ontologiesOfInterest, searchString)
+    jsonResponses = get_json(requestUrl) # get the json
+
+    #2.  Take the response and break it up into individual ontologies.  That way we
+    #can investigate the quality of the response for each ontology.
+    returnedOntologies = {}
+    for jsonResponse in jsonResponses["collection"]:
+        ontology = get_json(jsonResponse['links']['ontology'])
+        acronym = ontology['acronym'].upper()
+
+        if acronym in ontologiesOfInterest:
+            if not acronym in returnedOntologies:
+                returnedOntologies[acronym] = []
+
+            synonyms = []
+            if 'synonym' in jsonResponse:
+                synonyms = jsonResponse['synonym']
+
+            res = ResultWithSynonyms(jsonResponse['prefLabel'], synonyms)
+            returnedOntologies[acronym].append(res)
+
+    #3.  Which ontologies are missing?
+    missingOntologies = []
+    for ontologyOfInterest in ontologiesOfInterest:
+        if not ontologyOfInterest in returnedOntologies.keys():
+            missingOntologies.append(ontologyOfInterest)
+
+    #4.  Which ontologies had an exact match?
+    ontologiesWithExactMatch = []
+    for key in returnedOntologies.keys():
+        phrases = returnedOntologies[key]
+        if len([p for p in phrases if p.PrefLabel.lower() == searchString]) > 0:
+            ontologiesWithExactMatch.append(key)
+
+    #5.  Find the closest match out of the ones we do have.  Trim the words to
+    #their
+    # stems, and then count how many stem matches we get for each of the responses
+    # to the
+    # search phrase.  Order by response quality.  Return top-3.  Be mindful as to
+    # NOT return
+    # the same phrase.
+    searchStringStems = build_stems_with_weights(searchString)
+
+    topMatches = {}
+    for key in returnedOntologies.keys():
+        if not key in ontologiesWithExactMatch and not key in missingOntologies:
+            returnedPhrases = returnedOntologies[key]
+        
+            scores = compute_scores_for_phrases(returnedPhrases, searchStringStems)
+        
+            highestScore = -100000
+            for k,v in scores.items():
+                if v > highestScore:
+                    highestScore = v
+    
+            topMatches[key] = [k for k,v in scores.items() if v == highestScore] 
+
+    for missingOntology in missingOntologies:
+        for token in tokens:
+            url = build_url(REST_URL, [missingOntology], token)
+            jsonResponse = get_json(url)
+        
+            phrases = []
+            for item in jsonResponse["collection"]:
+                phrase = ResultWithSynonyms(item["prefLabel"], item["synonym"])
+                phrases.append(phrase)
+
+            scores = compute_scores_for_phrases(phrases, searchStringStems)
+        
+            highestScore = -100000
+            for k,v in scores.items():
+                if v > highestScore:
+                    highestScore = v
+    
+            topMatches[missingOntology] = [k for k,v in scores.items() if v == highestScore] 
+
+    return topMatches
+
+#'.//document/passage/annotation/text'
+#".//document/passage/annotation/infon[@key='type' and text() = 'disease']/../text"
+#phrases = []
+#tree = lxml.etree.parse('C:/Users/brush/desktop/group 25.xml')
+#for atext in tree.xpath(".//document/passage/annotation/infon[@key='type' and text() = 'disease']"):
+#    phrase = atext.text
+#    if not phrase in phrases:
+#        phrases.append(phrase)
+
 #nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
 nltk.data.path.append('D:/PythonData/nltk_data')
 
 ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
-
 #1.  Do a basic, dumb search using the original search string.  include all
 #ontologies (we can break it up later).
-searchString = 'Heat stress'.lower()
-tokens = word_tokenize(searchString)
-tags = nltk.pos_tag(tokens)
+searchString = 'CDG'.lower()
 
-requestUrl = build_url(REST_URL, ontologiesOfInterest, searchString)
-jsonResponses = get_json(requestUrl) # get the json
-
-#2.  Take the response and break it up into individual ontologies.  That way we
-#can investigate the quality of the response for each ontology.
-returnedOntologies = {}
-for jsonResponse in jsonResponses["collection"]:
-    ontology = get_json(jsonResponse['links']['ontology'])
-    acronym = ontology['acronym'].upper()
-
-    if acronym in ontologiesOfInterest:
-        if not acronym in returnedOntologies:
-            returnedOntologies[acronym] = []
-
-        synonyms = []
-        if 'synonym' in jsonResponse:
-            synonyms = jsonResponse['synonym']
-
-        res = ResultWithSynonyms(jsonResponse['prefLabel'], synonyms)
-        returnedOntologies[acronym].append(res)
-
-#3.  Which ontologies are missing?
-missingOntologies = []
-for ontologyOfInterest in ontologiesOfInterest:
-    if not ontologyOfInterest in returnedOntologies.keys():
-        missingOntologies.append(ontologyOfInterest)
-
-#4.  Which ontologies had an exact match?
-ontologiesWithExactMatch = []
-for key in returnedOntologies.keys():
-    phrases = returnedOntologies[key]
-    if len([p for p in phrases if p.PrefLabel.lower() == searchString]) > 0:
-        ontologiesWithExactMatch.append(key)
-
-#5.  Find the closest match out of the ones we do have.  Trim the words to
-#their
-# stems, and then count how many stem matches we get for each of the responses
-# to the
-# search phrase.  Order by response quality.  Return top-3.  Be mindful as to
-# NOT return
-# the same phrase.
-searchStringStems = build_stems_with_weights(searchString)
-
-topMatches = {}
-for key in returnedOntologies.keys():
-    if not key in ontologiesWithExactMatch and not key in missingOntologies:
-        returnedPhrases = returnedOntologies[key]
-        
-        scores = compute_scores_for_phrases(returnedPhrases)
-        
-        highestScore = -100000
-        for k,v in scores.items():
-            if v > highestScore:
-                highestScore = v
-    
-        topMatches[key] = [k for k,v in scores.items() if v == highestScore] 
-
+topMatches = do_it(searchString, ontologiesOfInterest)
 print(topMatches)
-print(ontologiesWithExactMatch)
-print(missingOntologies)
-
-for missingOntology in missingOntologies:
-    for token in tokens:
-        url = build_url(REST_URL, [missingOntology], token)
-        jsonResponse = get_json(url)
-        
-        phrases = []
-        for item in jsonResponse["collection"]:
-            phrase = ResultWithSynonyms(item["prefLabel"], item["synonym"])
-            phrases.append(phrase)
-
-        scores = compute_scores_for_phrases(phrases)
-        
-        highestScore = -100000
-        for k,v in scores.items():
-            if v > highestScore:
-                highestScore = v
-    
-        topMatches[missingOntology] = [k for k,v in scores.items() if v == highestScore] 
-
-print()
