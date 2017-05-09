@@ -168,20 +168,34 @@ def do_it(searchString, ontologiesOfInterest):
 
 #'.//document/passage/annotation/text'
 #".//document/passage/annotation/infon[@key='type' and text() = 'disease']/../text"
-#phrases = []
-#tree = lxml.etree.parse('C:/Users/brush/desktop/group 25.xml')
-#for atext in tree.xpath(".//document/passage/annotation/infon[@key='type' and text() = 'disease']"):
-#    phrase = atext.text
-#    if not phrase in phrases:
-#        phrases.append(phrase)
+phrases = []
+tree = lxml.etree.parse('C:/Users/ben/desktop/group 25.xml')
+for atext in tree.xpath(".//document/passage/annotation/infon[@key='type' and text() = 'disease']/../text"):
+    phrase = atext.text
+    if not phrase in phrases:
+        phrases.append(phrase)
 
-#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-nltk.data.path.append('D:/PythonData/nltk_data')
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+#nltk.data.path.append('D:/PythonData/nltk_data')
 
 ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
 #1.  Do a basic, dumb search using the original search string.  include all
 #ontologies (we can break it up later).
 searchString = 'CDG'.lower()
 
-topMatches = do_it(searchString, ontologiesOfInterest)
-print(topMatches)
+f = open("c:/users/ben/desktop/results.txt", "a+")
+numPhrases = len(phrases)
+current = 1
+for phrase in phrases:
+    print("Working on item " + str(current) + " of " + str(numPhrases))
+    current = current + 1
+    topMatches = do_it(phrase, ontologiesOfInterest)
+    print(topMatches)
+    f.write(phrase + "\n")
+    for k,vs in topMatches.items():
+        f.write("\t" + k + "\n")
+        for v in vs:
+            f.write("\t\t" + v + "\n")
+    f.flush()
+
+f.close()
