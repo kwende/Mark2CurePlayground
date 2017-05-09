@@ -75,10 +75,11 @@ def compute_scores_for_phrases(phrases, searchStringStems):
     for phrase in phrases:
         score = compute_score_for_stems(phrase.PrefLabel, searchStringStems)
 
-        for synonym in phrase.Synonyms:
-            synonymScore = compute_score_for_stems(synonym, searchStringStems)
-            if synonymScore > score:
-                score = synonymScore
+        if phrase.Synonyms is not None:
+            for synonym in phrase.Synonyms:
+                synonymScore = compute_score_for_stems(synonym, searchStringStems)
+                if synonymScore > score:
+                    score = synonymScore
 
         scores[phrase.PrefLabel] = score
 
@@ -91,7 +92,8 @@ def do_it(searchString, ontologiesOfInterest):
     requestUrl = build_url(REST_URL, ontologiesOfInterest, searchString)
     jsonResponses = get_json(requestUrl) # get the json
 
-    #2.  Take the response and break it up into individual ontologies.  That way we
+    #2.  Take the response and break it up into individual ontologies.  That
+    #way we
     #can investigate the quality of the response for each ontology.
     returnedOntologies = {}
     for jsonResponse in jsonResponses["collection"]:
@@ -124,9 +126,11 @@ def do_it(searchString, ontologiesOfInterest):
 
     #5.  Find the closest match out of the ones we do have.  Trim the words to
     #their
-    # stems, and then count how many stem matches we get for each of the responses
+    # stems, and then count how many stem matches we get for each of the
+    # responses
     # to the
-    # search phrase.  Order by response quality.  Return top-3.  Be mindful as to
+    # search phrase.  Order by response quality.  Return top-3.  Be mindful as
+    # to
     # NOT return
     # the same phrase.
     searchStringStems = build_stems_with_weights(searchString)
@@ -152,7 +156,12 @@ def do_it(searchString, ontologiesOfInterest):
         
             phrases = []
             for item in jsonResponse["collection"]:
-                phrase = ResultWithSynonyms(item["prefLabel"], item["synonym"])
+                prefLabel = item["prefLabel"]
+                synonym = None
+                if "synonym" in item:
+                    synonym = item["synonym"]
+
+                phrase = ResultWithSynonyms(item["prefLabel"], synonym)
                 phrases.append(phrase)
 
             scores = compute_scores_for_phrases(phrases, searchStringStems)
@@ -167,23 +176,25 @@ def do_it(searchString, ontologiesOfInterest):
     return topMatches
 
 #'.//document/passage/annotation/text'
-#".//document/passage/annotation/infon[@key='type' and text() = 'disease']/../text"
+#".//document/passage/annotation/infon[@key='type' and text() =
+#'disease']/../text"
 phrases = []
-tree = lxml.etree.parse('C:/Users/ben/desktop/group 25.xml')
+#tree = lxml.etree.parse('C:/Users/ben/desktop/group 25.xml')
+tree = lxml.etree.parse('C:/Users/brush/desktop/group 25.xml')
 for atext in tree.xpath(".//document/passage/annotation/infon[@key='type' and text() = 'disease']/../text"):
     phrase = atext.text
     if not phrase in phrases:
         phrases.append(phrase)
 
-nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-#nltk.data.path.append('D:/PythonData/nltk_data')
+#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+nltk.data.path.append('D:/PythonData/nltk_data')
 
 ontologiesOfInterest = ['MESH', 'DOID', 'RCD', 'MEDDRA']
 #1.  Do a basic, dumb search using the original search string.  include all
 #ontologies (we can break it up later).
 searchString = 'CDG'.lower()
 
-f = open("c:/users/ben/desktop/results.txt", "a+")
+f = open("c:/users/brush/desktop/results.txt", "a+")
 numPhrases = len(phrases)
 current = 1
 for phrase in phrases:
