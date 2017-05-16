@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ff1defd4-06c1-43f0-91f2-55d8c44b6a7d</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>NLTK Examples\TokenizeAndPOS.py</StartupFile>
+    <StartupFile>NLTK Examples\FindConsistentTags.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -24,6 +24,9 @@
   <ItemGroup>
     <Compile Include="ExamineOntologies.py" />
     <Compile Include="InspectClasses.py" />
+    <Compile Include="NLTK Examples\FindConsistentTags.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="NLTK Examples\Stemming.py">
       <SubType>Code</SubType>
     </Compile>
