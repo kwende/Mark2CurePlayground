@@ -18,6 +18,11 @@ class Entry:
 
         self.ImportantWords = [porter.stem(t[0]) for t in tags if t[1] in okayTags]
 
+    # https://stackoverflow.com/questions/2489669/function-parameter-types-in-python
+    def ComputeDistance(Entry: otherEntry):
+
+
+
 
 nltk.data.path.append('D:/PythonData/nltk_data')
 lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
@@ -35,5 +40,6 @@ for descriptorName in descriptorNames:
     entry = Entry(descriptorName)
     matchableDescriptorNames.append(entry)
 
-    #http://www.nltk.org/howto/wordnet.html
-print()
+#http://www.nltk.org/howto/wordnet.html
+for toMatchEntry in toMatchEntries:
+
