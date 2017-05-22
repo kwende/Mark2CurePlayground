@@ -3,6 +3,7 @@ from nltk.stem import *
 import nltk
 from nltk import word_tokenize
 import time
+import pickle
 
 #http://www.nltk.org/howto/metrics.html
 #https://www.nlm.nih.gov/mesh/topsubscope.html*-
@@ -30,18 +31,18 @@ class Entry:
     #def ComputeDistance(Entry: otherEntry):
 
 
-nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-#nltk.data.path.append('D:/PythonData/nltk_data')
-#lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
-lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
+#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+nltk.data.path.append('D:/PythonData/nltk_data')
+lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
+#lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
 
 toMatchEntries = []
 for line in lines:
     entry = Entry(line)
     toMatchEntries.append(entry)
 
-tree = lxml.etree.parse('C:/Users/Ben/Desktop/BioNLP/desc2017.xml')
-#tree = lxml.etree.parse('D:/BioNLP/desc2017.xml')
+#tree = lxml.etree.parse('C:/Users/Ben/Desktop/BioNLP/desc2017.xml')
+tree = lxml.etree.parse('D:/BioNLP/desc2017.xml')
 
 descriptorNames = tree.xpath(".//DescriptorRecord/AllowableQualifiersList/AllowableQualifier/QualifierReferredTo/QualifierName/String[text()='diagnosis']/../../../../../DescriptorName/String/text()")
 number = len(descriptorNames)
@@ -59,14 +60,17 @@ for descriptorName in descriptorNames:
 
     terms.append(term)    
 
+with open("c:/users/brush/desktop/parsed.pickle", "wb") as p:
+    pickle.dump(terms, p)
+
 end = time.time()
 elapsed = end - start
 print(elapsed)
 
-matchableDescriptorNames = []
-for descriptorName in descriptorNames:
-    entry = Entry(descriptorName)
-    matchableDescriptorNames.append(entry)
+#matchableDescriptorNames = []
+#for descriptorName in descriptorNames:
+#    entry = Entry(descriptorName)
+#    matchableDescriptorNames.append(entry)
 
 #http://www.nltk.org/howto/wordnet.html
 
