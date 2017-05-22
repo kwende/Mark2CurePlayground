@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ff1defd4-06c1-43f0-91f2-55d8c44b6a7d</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ReadLargeFile.py</StartupFile>
+    <StartupFile>ReadDescFile.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
