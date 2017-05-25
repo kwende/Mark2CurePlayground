@@ -13,25 +13,71 @@ class Term:
         self.MainEntry = None
         self.Synonyms = []
 
+    # https://stackoverflow.com/questions/2489669/function-parameter-types-in-python
+    def IsExactEntryFound(self, otherEntry):
+
+        isPerfectMatch = False
+        lineToMatch = otherEntry.Line.lower()
+
+        if lineToMatch == self.MainEntry.Line.lower():
+            isPerfectMatch = True
+        else:
+            for synonym in self.Synonyms:
+                if synonym.Line.lower() == lineToMatch:
+                    isPerfectMatch = True
+                    break
+
+        return isPerfectMatch
+
 class Entry:
 
     def __init__(self, line):
         self.Line = ""
         self.Tokens = []
-        self.ImportantWords = []
+        self.Stems = []
 
-        line = line.replace(',','')
+        line = line.replace(',','').replace('\n','')
         self.Line = line
         self.Tokens = word_tokenize(line)
         porter = PorterStemmer()
-        tags = nltk.pos_tag(self.Tokens)
-        okayTags = ['NN', 'NNS', 'JJ']    
+        self.Stems = [porter.stem(t) for t in self.Tokens]
+        #tags = nltk.pos_tag(self.Tokens)
+        #okayTags = ['NN', 'NNS', 'JJ']
 
-        self.ImportantWords = [porter.stem(t[0]) for t in tags if t[1] in okayTags or t[0].isdigit()]
+        #self.ImportantWords = [porter.stem(t[0]) for t in tags if t[1] in
+        #okayTags or t[0].isdigit()]
 
-    # https://stackoverflow.com/questions/2489669/function-parameter-types-in-python
-    #def ComputeDistance(Entry: otherEntry):
+def CreateAndSerializeMeshDescriptorRecords():
+    descriptorNames = tree.xpath(".//DescriptorRecord/AllowableQualifiersList/AllowableQualifier/QualifierReferredTo/QualifierName/String[text()='diagnosis']/../../../../../DescriptorName/String/text()")
+    number = len(descriptorNames)
+    terms = []
+    start = time.time()
+    number = 1
+    for descriptorName in descriptorNames:
+        print(str(number) + "/" + str(len(descriptorNames)) + ": " + descriptorName)
+        number = number + 1
+        term = Term()
+        term.MainEntry = Entry(descriptorName)
+        synonymNames = tree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + descriptorName + '"]/../../ConceptList/Concept/TermList/Term/String/text()')
+        for synonymName in synonymNames:
+            if not synonymName == descriptorName:
+                print('\t' + synonymName)
+                term.Synonyms.append(Entry(synonymName))
 
+        terms.append(term)
+
+    print('serializing...')
+
+    with open("c:/users/brush/desktop/parsed.pickle", "wb") as p:
+        pickle.dump(terms, p)
+
+def LoadAndDeserializeMeshDescriptorRecords():
+    terms = []
+
+    with open("c:/users/brush/desktop/parsed.pickle", "rb") as p:
+        terms = pickle.load(p)
+
+    return terms
 
 # work desktop
 nltk.data.path.append('D:/PythonData/nltk_data')
@@ -47,39 +93,21 @@ for line in lines:
     entry = Entry(line)
     toMatchEntries.append(entry)
 
-#terms = []
-#with open("c:/users/brush/desktop/parsed.pickle", "rb") as f:
-#    terms = pickle.load(f)
+meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords()
 
-#term = None
-#with open("c:/users/brush/desktop/parsed.pickle", "rb") as f:
-#    term = pickle.load(f)
-descriptorNames = tree.xpath(".//DescriptorRecord/AllowableQualifiersList/AllowableQualifier/QualifierReferredTo/QualifierName/String[text()='diagnosis']/../../../../../DescriptorName/String/text()")
-number = len(descriptorNames)
-terms = []
-start = time.time()
-for descriptorName in descriptorNames:
-    term = Term()
-    term.MainEntry = Entry(descriptorName)
-    synonymNames = tree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + descriptorName + '"]/../../ConceptList/Concept/TermList/Term/String/text()')
-    for synonymName in synonymNames:
-        if not synonymName == descriptorName:
-            term.Synonyms.append(Entry(synonymName))
-
-    terms.append(term) 
-
-end = time.time()
-elapsed = end - start
-print(elapsed)
-
-with open("c:/users/brush/desktop/parsed.pickle", "wb") as p:
-    pickle.dump(term, p)
-
-print()
 #matchableDescriptorNames = []
 #for descriptorName in descriptorNames:
 #    entry = Entry(descriptorName)
 #    matchableDescriptorNames.append(entry)
+perfectMatches = []
+toMatchCount = 1
+for toMatchEntry in toMatchEntries:
+    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
+    toMatchCount = toMatchCount + 1
+    for meshDescriptorRecord in meshDescriptorRecords:
+        if meshDescriptorRecord.IsExactEntryFound(toMatchEntry):
+            perfectMatches.append(toMatchEntry)
 
+numberOfPerfectMatches = len(perfectMatches)
 #http://www.nltk.org/howto/wordnet.html
-
+print("Found " + str(numberOfPerfectMatches) + " out of " + str(len(toMatchEntries)) + " perfect matches.")
