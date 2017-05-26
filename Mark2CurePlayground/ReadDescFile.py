@@ -71,43 +71,57 @@ def CreateAndSerializeMeshDescriptorRecords():
     with open("c:/users/brush/desktop/parsed.pickle", "wb") as p:
         pickle.dump(terms, p)
 
-def LoadAndDeserializeMeshDescriptorRecords():
+def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
     terms = []
 
-    with open("c:/users/brush/desktop/parsed.pickle", "rb") as p:
+    with open(descriptorPath, "rb") as p:
         terms = pickle.load(p)
 
     return terms
 
 # work desktop
-nltk.data.path.append('D:/PythonData/nltk_data')
-lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
-tree = lxml.etree.parse('D:/BioNLP/desc2017.xml')
+#nltk.data.path.append('D:/PythonData/nltk_data')
+#lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
+#tree = lxml.etree.parse('D:/BioNLP/desc2017.xml')
+#descriptorPath = ""
 
 # home laptop
-#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-#lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
-#tree = lxml.etree.parse('C:/Users/Ben/Desktop/BioNLP/desc2017.xml')
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
+tree = lxml.etree.parse('C:/Users/Ben/Desktop/BioNLP/desc2017.xml')
+descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
+
 toMatchEntries = []
 for line in lines:
     entry = Entry(line)
     toMatchEntries.append(entry)
 
-meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords()
+meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
 #matchableDescriptorNames = []
 #for descriptorName in descriptorNames:
 #    entry = Entry(descriptorName)
 #    matchableDescriptorNames.append(entry)
+
+
+errors = open('c:/users/ben/desktop/errors.txt','w+')
 perfectMatches = []
 toMatchCount = 1
 for toMatchEntry in toMatchEntries:
     print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
     toMatchCount = toMatchCount + 1
+
+    found = False
     for meshDescriptorRecord in meshDescriptorRecords:
         if meshDescriptorRecord.IsExactEntryFound(toMatchEntry):
             perfectMatches.append(toMatchEntry)
+            found = True
+            break
 
-numberOfPerfectMatches = len(perfectMatches)
+    if not found:
+        errors.write(toMatchEntry.Line + "\n")
+
+errors.close()
+
 #http://www.nltk.org/howto/wordnet.html
-print("Found " + str(numberOfPerfectMatches) + " out of " + str(len(toMatchEntries)) + " perfect matches.")
+print("Match score is " + str((len(perfectMatches) / (len(toMatchEntries)) * 100)) + "%")
