@@ -30,18 +30,31 @@ class Term:
 
         return isPerfectMatch
 
-    def IsPossibleAbbreviationMatch(self, otherEntry):
-        
+    def IsMatchableAbbreviation(self, otherEntry):
         isAbbreviationMatch = False
-        
-        match = re.match(r'\b[A-Z]*', otherEntry.Line)
-
+        match = re.fullmatch(r'\b[A-Z]*', otherEntry.Line)
         if match:
-            matchedGroup = match.group()
-            
-
+            abbreviation = otherEntry.Abbreviation.lower()
+            if abbreviation == self.MainEntry.Line.lower():
+                isAbbreviationMatch = True
+            else:
+                for synonym in self.Synonyms:
+                    if synonym.Abbreviation.lower() == abbreviation:
+                        isAbbreviationMatch = True
+                        break
         return isAbbreviationMatch
         
+    def IsMatchSansType(self, otherEntry):
+        isMatch = False
+
+        matchLineSansType = otherEntry.Line.lower()
+        
+        if 'type' in matchLineSansType:
+            index = matchLineSansType.index('type')
+            matchLineSansType = matchLineSansType[:index-1]
+            
+            
+        return isMatch
 
 class Entry:
 
@@ -101,50 +114,57 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
     return terms
 
 # work desktop
-nltk.data.path.append('D:/PythonData/nltk_data')
-lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
-tree = lxml.etree.parse('D:/BioNLP/desc2017.xml')
-descriptorPath = ""
+#nltk.data.path.append('D:/PythonData/nltk_data')
+#lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
+#tree = lxml.etree.parse('D:/BioNLP/desc2017.xml')
+#descriptorPath = ""
 
 # home laptop
-#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-#lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
-#tree = lxml.etree.parse('C:/Users/Ben/Desktop/BioNLP/desc2017.xml')
-#descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
+tree = lxml.etree.parse('C:/Users/Ben/Desktop/BioNLP/desc2017.xml')
+descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
 
 toMatchEntries = []
 for line in lines:
     entry = Entry(line)
     toMatchEntries.append(entry)
 
-meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords(tree)
-#meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
+#meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords(tree)
+meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
 #matchableDescriptorNames = []
 #for descriptorName in descriptorNames:
 #    entry = Entry(descriptorName)
 #    matchableDescriptorNames.append(entry)
+errors = open('c:/users/ben/desktop/errors.txt','w+')
+matches = []
+toMatchCount = 1
+fullMatch = 0
+abbreviationMatch = 0
+for toMatchEntry in toMatchEntries:
+    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
+    toMatchCount = toMatchCount + 1
 
-#errors = open('c:/users/ben/desktop/errors.txt','w+')
-#perfectMatches = []
-#toMatchCount = 1
-#for toMatchEntry in toMatchEntries:
-#    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
-#    toMatchCount = toMatchCount + 1
+    found = False
+    for meshDescriptorRecord in meshDescriptorRecords:
+        if meshDescriptorRecord.IsExactEntryFound(toMatchEntry):
+            matches.append(toMatchEntry)
+            fullMatch = fullMatch + 1
+            found = True
+        elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
+            found = True
+            abbreviationMatch = abbreviationMatch + 1
+            matches.append(toMatchEntry)
+            break
+        elif meshDescriptorRecord.IsMatchSansType(toMatchEntry):
+            found = True
+            break
+    if not found:
+        errors.write(toMatchEntry.Line + "\n")
 
-#    found = False
-#    for meshDescriptorRecord in meshDescriptorRecords:
-#        if meshDescriptorRecord.IsExactEntryFound(toMatchEntry):
-#            perfectMatches.append(toMatchEntry)
-#            found = True
-#        elif meshDescriptorRecord.IsPossibleAbbreviationMatch(toMatchEntry):
-#            found = True
-#            break
+errors.close()
 
-#    if not found:
-#        errors.write(toMatchEntry.Line + "\n")
-
-#errors.close()
-
-##http://www.nltk.org/howto/wordnet.html
-#print("Match score is " + str((len(perfectMatches) / (len(toMatchEntries)) * 100)) + "%")
+#http://www.nltk.org/howto/wordnet.html
+print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
+print("Full match " + str(fullMatch) + ", Abbreviation Match: " + str(abbreviationMatch))
