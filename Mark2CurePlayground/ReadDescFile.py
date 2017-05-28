@@ -15,7 +15,7 @@ class Term:
         self.Synonyms = []
 
     # https://stackoverflow.com/questions/2489669/function-parameter-types-in-python
-    def IsExactEntryFound(self, otherEntry):
+    def IsExactMatch(self, otherEntry):
 
         isPerfectMatch = False
         lineToMatch = otherEntry.Line.lower()
@@ -44,17 +44,41 @@ class Term:
                         break
         return isAbbreviationMatch
         
-    def IsMatchSansType(self, otherEntry):
+    def IsExactMatchSansType(self, otherEntry):
         isMatch = False
-
         matchLineSansType = otherEntry.Line.lower()
-        
         if 'type' in matchLineSansType:
             index = matchLineSansType.index('type')
-            matchLineSansType = matchLineSansType[:index-1]
-            
-            
+            matchLineSansType = matchLineSansType[:index - 1]
+            if self.MainEntry.Line.lower() == matchLineSansType:
+                isMatch = True
+            else:
+                for synonym in self.Synonyms:
+                    if synonym.Line.lower() == matchLineSansType:
+                        isMatch = True
+                        break
         return isMatch
+
+    def ExactMatchButErroneousSpacePlacement(self, otherEntry):
+        isMatch = False
+
+        line = otherEntry.Line.lower()
+        match = re.search(r' *\'', line)
+
+        if match:
+            line = re.sub(r' *\'', '\'', line)
+            if self.MainEntry.Line.lower() == line:
+                isMatch = True
+            else:
+                for synonym in self.Synonyms:
+                    if synonym.Line.lower() == line:
+                        isMatch = True
+                        break
+        return isMatch
+
+    def ExactMatchSubstring(self, otherEntry):
+
+        return False
 
 class Entry:
 
@@ -79,8 +103,9 @@ class Entry:
             tags = nltk.pos_tag(self.Tokens)
             self.Abbreviation = ''.join([t[0][0].upper() for t in tags if t[1] != "IN"])
 
-def CreateAndSerializeMeshDescriptorRecords(tree):
-    descriptorNames = tree.xpath(".//DescriptorRecord/AllowableQualifiersList/AllowableQualifier/QualifierReferredTo/QualifierName/String[text()='diagnosis']/../../../../../DescriptorName/String/text()")
+def CreateAndSerializeMeshDescriptorRecords(xmlDescPath, xmlSupplePath, outputPicklePath):
+    descTree = lxml.etree.parse(xmlDescPath)
+    descriptorNames = descTree.xpath(".//DescriptorRecord/AllowableQualifiersList/AllowableQualifier/QualifierReferredTo/QualifierName/String[text()='diagnosis']/../../../../../DescriptorName/String/text()")
     number = len(descriptorNames)
     terms = []
     start = time.time()
@@ -90,7 +115,7 @@ def CreateAndSerializeMeshDescriptorRecords(tree):
         number = number + 1
         term = Term()
         term.MainEntry = Entry(descriptorName)
-        synonymNames = tree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + descriptorName + '"]/../../ConceptList/Concept/TermList/Term/String/text()')
+        synonymNames = descTree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + descriptorName + '"]/../../ConceptList/Concept/TermList/Term/String/text()')
         for synonymName in synonymNames:
             if not synonymName == descriptorName:
                 print('\t' + synonymName)
@@ -98,9 +123,7 @@ def CreateAndSerializeMeshDescriptorRecords(tree):
 
         terms.append(term)
 
-    print('serializing...')
-
-    with open("c:/users/brush/desktop/parsed.pickle", "wb") as p:
+    with open(outputPicklePath, "wb") as p:
         pickle.dump(terms, p)
 
     return terms
@@ -122,7 +145,6 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
 # home laptop
 nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
 lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
-tree = lxml.etree.parse('C:/Users/Ben/Desktop/BioNLP/desc2017.xml')
 descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
 
 toMatchEntries = []
@@ -130,7 +152,8 @@ for line in lines:
     entry = Entry(line)
     toMatchEntries.append(entry)
 
-#meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords(tree)
+#meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords('C:/Users/Ben/Desktop/BioNLP/desc2017.xml', \
+    #"c:/users/brush/desktop/parsed.pickle")
 meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
 #matchableDescriptorNames = []
@@ -140,31 +163,46 @@ meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 errors = open('c:/users/ben/desktop/errors.txt','w+')
 matches = []
 toMatchCount = 1
+
 fullMatch = 0
 abbreviationMatch = 0
+sansTypeMatch = 0
+failureCount = 0
+spacingFix = 0
+
 for toMatchEntry in toMatchEntries:
     print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
     toMatchCount = toMatchCount + 1
 
     found = False
     for meshDescriptorRecord in meshDescriptorRecords:
-        if meshDescriptorRecord.IsExactEntryFound(toMatchEntry):
-            matches.append(toMatchEntry)
+        if meshDescriptorRecord.IsExactMatch(toMatchEntry):
             fullMatch = fullMatch + 1
             found = True
+            break
         elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
             found = True
             abbreviationMatch = abbreviationMatch + 1
-            matches.append(toMatchEntry)
             break
-        elif meshDescriptorRecord.IsMatchSansType(toMatchEntry):
+        elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
+            found = True
+            sansTypeMatch = sansTypeMatch + 1
+            break
+        elif meshDescriptorRecord.ExactMatchButErroneousSpacePlacement(toMatchEntry):
+            spacingFix = spacingFix + 1
             found = True
             break
+
     if not found:
+        failureCount = failureCount + 1
         errors.write(toMatchEntry.Line + "\n")
+    else:
+        matches.append(toMatchEntry)
 
 errors.close()
 
 #http://www.nltk.org/howto/wordnet.html
 print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
-print("Full match " + str(fullMatch) + ", Abbreviation Match: " + str(abbreviationMatch))
+print("Full match " + str(fullMatch) + ", Abbreviation Match: " + str(abbreviationMatch) + \
+    ", Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
+print("Failure count: " + str(failureCount))
