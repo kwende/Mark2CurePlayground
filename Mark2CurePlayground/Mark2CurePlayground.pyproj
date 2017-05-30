@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ff1defd4-06c1-43f0-91f2-55d8c44b6a7d</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ReadLargeFile.py</StartupFile>
+    <StartupFile>ReadDescFile.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,15 +22,21 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="CSVParser.py">
+    <Compile Include="Experiments\CSVParser.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ExamineOntologies.py" />
-    <Compile Include="GoogleSearch.py">
+    <Compile Include="Experiments\ExamineOntologies.py" />
+    <Compile Include="Experiments\FindQualifiers.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="InspectClasses.py" />
-    <Compile Include="FindConsistentTags.py">
+    <Compile Include="Experiments\GoogleSearch.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Experiments\InspectClasses.py" />
+    <Compile Include="Experiments\FindConsistentTags.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Experiments\XPathTest.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="NLTK Examples\Stemming.py">
@@ -42,23 +48,24 @@
     <Compile Include="NLTK Examples\WordNetSimilarity.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="PickleTest.py">
+    <Compile Include="Experiments\PickleTest.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ReadDescFile.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ReadLargeFile.py">
+    <Compile Include="Experiments\ReadLargeFile.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="RegexTest.py">
+    <Compile Include="Experiments\RegexTest.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Wikisearch.py">
+    <Compile Include="Experiments\Wikisearch.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Experiments\" />
     <Folder Include="NLTK Examples\" />
   </ItemGroup>
   <PropertyGroup>

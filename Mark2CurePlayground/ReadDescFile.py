@@ -105,19 +105,20 @@ class Entry:
 
 def CreateAndSerializeMeshDescriptorRecords(xmlDescPath, xmlSupplePath, outputPicklePath):
     descTree = lxml.etree.parse(xmlDescPath)
-    descriptorNames = descTree.xpath(".//DescriptorRecord/AllowableQualifiersList/AllowableQualifier/QualifierReferredTo/QualifierName/String[text()='diagnosis']/../../../../../DescriptorName/String/text()")
-    number = len(descriptorNames)
+    
+    diseases = descTree.xpath(".//DescriptorRecord/TreeNumberList/TreeNumber[starts-with(text(), 'C10')]/../../DescriptorName/String/text()")
+
     terms = []
     start = time.time()
     number = 1
-    for descriptorName in descriptorNames:
-        print(str(number) + "/" + str(len(descriptorNames)) + ": " + descriptorName)
+    for disease in diseases:
+        print(str(number) + "/" + str(len(diseases)) + ": " + disease)
         number = number + 1
         term = Term()
-        term.MainEntry = Entry(descriptorName)
-        synonymNames = descTree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + descriptorName + '"]/../../ConceptList/Concept/TermList/Term/String/text()')
+        term.MainEntry = Entry(disease)
+        synonymNames = descTree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + disease + '"]/../../ConceptList/Concept/TermList/Term/String/text()')
         for synonymName in synonymNames:
-            if not synonymName == descriptorName:
+            if not synonymName == disease:
                 print('\t' + synonymName)
                 term.Synonyms.append(Entry(synonymName))
 
@@ -152,57 +153,64 @@ for line in lines:
     entry = Entry(line)
     toMatchEntries.append(entry)
 
-#meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords('C:/Users/Ben/Desktop/BioNLP/desc2017.xml', \
-    #"c:/users/brush/desktop/parsed.pickle")
-meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
+meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords('C:/Users/Ben/Desktop/BioNLP/desc2017.xml', \
+    'C:/Users/Ben/Desktop/BioNLP/supp2017.xml', "c:/users/ben/desktop/parsed.pickle")
+#meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
 #matchableDescriptorNames = []
 #for descriptorName in descriptorNames:
 #    entry = Entry(descriptorName)
 #    matchableDescriptorNames.append(entry)
-errors = open('c:/users/ben/desktop/errors.txt','w+')
-matches = []
-toMatchCount = 1
+#errors = open('c:/users/ben/desktop/errors.txt','w+')
+#matches = []
+#toMatchCount = 1
 
-fullMatch = 0
-abbreviationMatch = 0
-sansTypeMatch = 0
-failureCount = 0
-spacingFix = 0
+#fullMatch = 0
+#abbreviationMatch = 0
+#sansTypeMatch = 0
+#failureCount = 0
+#spacingFix = 0
 
-for toMatchEntry in toMatchEntries:
-    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
-    toMatchCount = toMatchCount + 1
+#for toMatchEntry in toMatchEntries:
+#    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
+#    toMatchCount = toMatchCount + 1
 
-    found = False
-    for meshDescriptorRecord in meshDescriptorRecords:
-        if meshDescriptorRecord.IsExactMatch(toMatchEntry):
-            fullMatch = fullMatch + 1
-            found = True
-            break
-        elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
-            found = True
-            abbreviationMatch = abbreviationMatch + 1
-            break
-        elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
-            found = True
-            sansTypeMatch = sansTypeMatch + 1
-            break
-        elif meshDescriptorRecord.ExactMatchButErroneousSpacePlacement(toMatchEntry):
-            spacingFix = spacingFix + 1
-            found = True
-            break
+#    if toMatchEntry.Line.lower() == 'haploinsufficiency':
+#        print()
 
-    if not found:
-        failureCount = failureCount + 1
-        errors.write(toMatchEntry.Line + "\n")
-    else:
-        matches.append(toMatchEntry)
+#    found = False
+#    for meshDescriptorRecord in meshDescriptorRecords:
 
-errors.close()
+#        if 'halpo' in meshDescriptorRecord.MainEntry.Line.lower():
+#            print()
 
-#http://www.nltk.org/howto/wordnet.html
-print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
-print("Full match " + str(fullMatch) + ", Abbreviation Match: " + str(abbreviationMatch) + \
-    ", Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
-print("Failure count: " + str(failureCount))
+#        if meshDescriptorRecord.IsExactMatch(toMatchEntry):
+#            fullMatch = fullMatch + 1
+#            found = True
+#            break
+#        elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
+#            found = True
+#            abbreviationMatch = abbreviationMatch + 1
+#            break
+#        elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
+#            found = True
+#            sansTypeMatch = sansTypeMatch + 1
+#            break
+#        elif meshDescriptorRecord.ExactMatchButErroneousSpacePlacement(toMatchEntry):
+#            spacingFix = spacingFix + 1
+#            found = True
+#            break
+
+#    if not found:
+#        failureCount = failureCount + 1
+#        errors.write(toMatchEntry.Line + "\n")
+#    else:
+#        matches.append(toMatchEntry)
+
+#errors.close()
+
+##http://www.nltk.org/howto/wordnet.html
+#print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
+#print("Full match " + str(fullMatch) + ", Abbreviation Match: " + str(abbreviationMatch) + \
+#    ", Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
+#print("Failure count: " + str(failureCount))
