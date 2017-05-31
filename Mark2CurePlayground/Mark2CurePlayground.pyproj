@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ff1defd4-06c1-43f0-91f2-55d8c44b6a7d</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ReadDescFile.py</StartupFile>
+    <StartupFile>Experiments\CrawlErrors.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,6 +22,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Experiments\CrawlErrors.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Experiments\CSVParser.py">
       <SubType>Code</SubType>
     </Compile>

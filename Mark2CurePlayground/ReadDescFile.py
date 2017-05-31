@@ -61,10 +61,8 @@ class Term:
 
     def ExactMatchButErroneousSpacePlacement(self, otherEntry):
         isMatch = False
-
         line = otherEntry.Line.lower()
         match = re.search(r' *\'', line)
-
         if match:
             line = re.sub(r' *\'', '\'', line)
             if self.MainEntry.Line.lower() == line:
@@ -77,7 +75,7 @@ class Term:
         return isMatch
 
     def ExactMatchSubstring(self, otherEntry):
-
+        
         return False
 
 class Entry:
@@ -93,6 +91,7 @@ class Entry:
         self.Tokens = word_tokenize(line)
         porter = PorterStemmer()
         self.Stems = [porter.stem(t) for t in self.Tokens]
+        self.PosTags = nltk.pos_tag(self.Tokens)
 
         # is this already an abbreviation?
         match = re.fullmatch(r'\b[A-Z]+', line)
@@ -100,8 +99,7 @@ class Entry:
         if match:
             self.Abbreviation = line
         else:
-            tags = nltk.pos_tag(self.Tokens)
-            self.Abbreviation = ''.join([t[0][0].upper() for t in tags if t[1] != "IN"])
+            self.Abbreviation = ''.join([t[0][0].upper() for t in self.PosTags if t[1] != "IN"])
 
 def CreateAndSerializeMeshDescriptorRecords(xmlDescPath, xmlSupplePath, outputPicklePath):
     descTree = lxml.etree.parse(xmlDescPath)
@@ -138,26 +136,27 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
     return terms
 
 # work desktop
-nltk.data.path.append('D:/PythonData/nltk_data')
-lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
-descFilePath = 'D:/BioNLP/desc2017.xml'
-suppFilePath = 'D:/BioNLP/supp2017.xml'
-descriptorPath = 'D:/BioNLP/parsed.pickle'
-errorsFilePath = 'D:/BioNLP/errors.txt'
+#nltk.data.path.append('D:/PythonData/nltk_data')
+#lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
+#descFilePath = 'D:/BioNLP/desc2017.xml'
+#suppFilePath = 'D:/BioNLP/supp2017.xml'
+#descriptorPath = 'D:/BioNLP/parsed.pickle'
+#errorsFilePath = 'D:/BioNLP/errors.txt'
 
 # home laptop
-#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-#lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
-#descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
-#descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
-#suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
+descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
+descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
+suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
+errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
+
 toMatchEntries = []
 for line in lines:
     entry = Entry(line)
     toMatchEntries.append(entry)
 
 #meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords(descFilePath,
-#\
 #    suppFilePath, descriptorPath)
 meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
@@ -174,9 +173,6 @@ spacingFix = 0
 for toMatchEntry in toMatchEntries:
     print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
     toMatchCount = toMatchCount + 1
-
-    if toMatchEntry.Line.lower() == 'haploinsufficiency':
-        print()
 
     found = False
     for meshDescriptorRecord in meshDescriptorRecords:
