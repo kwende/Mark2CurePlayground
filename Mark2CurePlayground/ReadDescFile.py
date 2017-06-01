@@ -74,9 +74,47 @@ class Term:
                         break
         return isMatch
 
-    def ExactMatchSubstring(self, otherEntry):
+    def ExactMatchOfStems(self, otherEntry):
         
-        return False
+        isMatch = False
+
+        if len(self.MainEntry.Stems) == len(otherEntry.Stems):
+
+            matches = 0
+            # Check main entry
+            for mainStem in self.MainEntry.Stems:
+                for otherStem in otherEntry.Stems:
+                    if mainStem.lower() == otherStem.lower():
+                        matches = matches + 1
+
+            if matches == len(otherEntry.Stems):
+                isMatch = True
+            else:
+                # Check synonyms
+                for synonym in self.Synonyms:
+                    for mainStem in synonym.Stems:
+                        for otherStem in otherEntry.Stems:
+                            if mainStem.lower() == otherStem.lower():
+                                matches = matches + 1             
+
+        return isMatch
+
+    def PhraseExistsIn(self, otherEntry):
+        isMatch = False 
+
+        if len(otherEntry.Tokens) > 0:
+            if self.MainEntry.Line.lower() in otherEntry.Line.lower() and \
+                (len(self.MainEntry.Line) / len(otherEntry.Line)) > .7:
+                print(self.MainEntry.Line + " exists in " + otherEntry.Line)
+                isMatch = True
+            else:
+                for synonym in self.Synonyms:
+                    if synonym.Line.lower() in otherEntry.Line.lower() and \
+                    (len(synonym.Line) / len(otherEntry.Line)) > .7:
+                        print(synonym.Line + " exists in " + otherEntry.Line)
+                        isMatch = True
+
+        return isMatch
 
 class Entry:
 
@@ -143,9 +181,11 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
 #descriptorPath = 'D:/BioNLP/parsed.pickle'
 #errorsFilePath = 'D:/BioNLP/errors.txt'
 
+posTags = nltk.pos_tag(word_tokenize("Congenital disorder of glycosylation type Ij"))
+
 # home laptop
 nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-lines = open('c:/users/ben/desktop/bionlp/threeormore.txt', 'r').readlines()
+lines = open('c:/users/ben/desktop/bionlp/threeormore_trimmed.txt', 'r').readlines()
 descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
 descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
 suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
@@ -160,6 +200,8 @@ for line in lines:
 #    suppFilePath, descriptorPath)
 meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
+
+
 errors = open(errorsFilePath,'w+')
 matches = []
 toMatchCount = 1
@@ -169,32 +211,47 @@ abbreviationMatch = 0
 sansTypeMatch = 0
 failureCount = 0
 spacingFix = 0
+exactStemMatch = 0
+existsIn = 0
 
 for toMatchEntry in toMatchEntries:
-    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
+    #print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
     toMatchCount = toMatchCount + 1
 
-    found = False
+    exactFound = False
+
+    floaters = {}
     for meshDescriptorRecord in meshDescriptorRecords:
 
+        # these should be exact or near-exact matches. just variants. 
         if meshDescriptorRecord.IsExactMatch(toMatchEntry):
             fullMatch = fullMatch + 1
-            found = True
+            exactFound = True
             break
         elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
-            found = True
+            exactFound = True
             abbreviationMatch = abbreviationMatch + 1
             break
         elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
-            found = True
+            exactFound = True
             sansTypeMatch = sansTypeMatch + 1
             break
         elif meshDescriptorRecord.ExactMatchButErroneousSpacePlacement(toMatchEntry):
             spacingFix = spacingFix + 1
-            found = True
+            exactFound = True
+            break
+        elif meshDescriptorRecord.ExactMatchOfStems(toMatchEntry):
+            exactStemMatch = exactStemMatch + 1
+            exactFound = True
+            break
+        elif meshDescriptorRecord.PhraseExistsIn(toMatchEntry):
+            existsIn = existsIn + 1
+            exactFound = True
             break
 
-    if not found:
+    
+
+    if not exactFound:
         failureCount = failureCount + 1
         errors.write(toMatchEntry.Line + "\n")
     else:
@@ -204,6 +261,10 @@ errors.close()
 
 #http://www.nltk.org/howto/wordnet.html
 print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
-print("Full match " + str(fullMatch) + ", Abbreviation Match: " + str(abbreviationMatch) + \
-    ", Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
+print("Full match " + str(fullMatch))
+print("Abbreviation Match: " + str(abbreviationMatch))
+print("Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
+print("Exact stem match: " + str(exactStemMatch))
+print("Exists in: " + str(existsIn))
+print("====")
 print("Failure count: " + str(failureCount))
