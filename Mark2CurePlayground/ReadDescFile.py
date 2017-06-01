@@ -179,14 +179,6 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
 
     return terms
 
-def TfidTokenizer(text):
-    stemmer = PorterStemmer()
-    tokens = nltk.word_tokenize(text)
-    stems = []
-    for token in tokens:
-        stems.append(stemmer.stem(token))
-
-tfidf = TfidfVectorizer(tokenizer=TfidTokenizer, stop_words='english')
 
 # work desktop
 nltk.data.path.append('D:/PythonData/nltk_data')
@@ -213,16 +205,16 @@ for line in lines:
 #    suppFilePath, descriptorPath)
 meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
-dict = {}
+all_phrases = {}
 for record in meshDescriptorRecords:
-    lines.append(record.MainEntry.Line.lower().translate(None, string.punctuation))
-
-    if phrase in record.MainEntry.Line.lower():
-        count = count + 1
+    all_phrases.append(record.MainEntry.Line.lower().translate(None, string.punctuation))
 
     for synonym in record.Synonyms:
-        if phrase in synonym.Line.lower():
-            count = count + 1
+        all_phrases.append(synonym.Line.lower().translate(None, string.punctuation))
+
+print('transforming...')
+tfidf = TfidfVectorizer(stop_words='english')
+my_features = vectorizer.fit_transform(all_phrases)
 
 errors = open(errorsFilePath,'w+')
 matches = []
