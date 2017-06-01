@@ -5,12 +5,6 @@ from nltk import word_tokenize
 import time
 import pickle
 import re
-import nltk
-import string
-import os
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from nltk.stem.porter import PorterStemmer
 
 #http://www.nltk.org/howto/metrics.html
 #https://www.nlm.nih.gov/mesh/topsubscope.html*-
@@ -179,22 +173,23 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
 
     return terms
 
-
 # work desktop
-nltk.data.path.append('D:/PythonData/nltk_data')
-lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
-descFilePath = 'D:/BioNLP/desc2017.xml'
-suppFilePath = 'D:/BioNLP/supp2017.xml'
-descriptorPath = 'D:/BioNLP/parsed.pickle'
-errorsFilePath = 'D:/BioNLP/errors.txt'
+#nltk.data.path.append('D:/PythonData/nltk_data')
+#lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
+#descFilePath = 'D:/BioNLP/desc2017.xml'
+#suppFilePath = 'D:/BioNLP/supp2017.xml'
+#descriptorPath = 'D:/BioNLP/parsed.pickle'
+#errorsFilePath = 'D:/BioNLP/errors.txt'
+
+posTags = nltk.pos_tag(word_tokenize("Congenital disorder of glycosylation type Ij"))
 
 # home laptop
-#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-#lines = open('c:/users/ben/desktop/bionlp/threeormore_trimmed.txt', 'r').readlines()
-#descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
-#descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
-#suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
-#errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+lines = open('c:/users/ben/desktop/bionlp/threeormore_trimmed.txt', 'r').readlines()
+descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
+descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
+suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
+errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
 
 toMatchEntries = []
 for line in lines:
@@ -205,16 +200,7 @@ for line in lines:
 #    suppFilePath, descriptorPath)
 meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
-all_phrases = {}
-for record in meshDescriptorRecords:
-    all_phrases.append(record.MainEntry.Line.lower().translate(None, string.punctuation))
 
-    for synonym in record.Synonyms:
-        all_phrases.append(synonym.Line.lower().translate(None, string.punctuation))
-
-print('transforming...')
-tfidf = TfidfVectorizer(stop_words='english')
-my_features = vectorizer.fit_transform(all_phrases)
 
 errors = open(errorsFilePath,'w+')
 matches = []
@@ -263,7 +249,7 @@ for toMatchEntry in toMatchEntries:
             exactFound = True
             break
 
-    
+
 
     if not exactFound:
         failureCount = failureCount + 1
