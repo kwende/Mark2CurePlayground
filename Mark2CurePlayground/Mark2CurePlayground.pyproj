@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ff1defd4-06c1-43f0-91f2-55d8c44b6a7d</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ReadDescFile.py</StartupFile>
+    <StartupFile>Experiments\IfIdf.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -33,6 +33,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Experiments\GoogleSearch.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Experiments\IfIdf.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Experiments\InspectClasses.py" />

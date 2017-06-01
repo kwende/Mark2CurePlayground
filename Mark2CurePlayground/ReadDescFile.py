@@ -5,6 +5,12 @@ from nltk import word_tokenize
 import time
 import pickle
 import re
+import nltk
+import string
+import os
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.stem.porter import PorterStemmer
 
 #http://www.nltk.org/howto/metrics.html
 #https://www.nlm.nih.gov/mesh/topsubscope.html*-
@@ -173,23 +179,30 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
 
     return terms
 
-# work desktop
-#nltk.data.path.append('D:/PythonData/nltk_data')
-#lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
-#descFilePath = 'D:/BioNLP/desc2017.xml'
-#suppFilePath = 'D:/BioNLP/supp2017.xml'
-#descriptorPath = 'D:/BioNLP/parsed.pickle'
-#errorsFilePath = 'D:/BioNLP/errors.txt'
+def TfidTokenizer(text):
+    stemmer = PorterStemmer()
+    tokens = nltk.word_tokenize(text)
+    stems = []
+    for token in tokens:
+        stems.append(stemmer.stem(token))
 
-posTags = nltk.pos_tag(word_tokenize("Congenital disorder of glycosylation type Ij"))
+tfidf = TfidfVectorizer(tokenizer=TfidTokenizer, stop_words='english')
+
+# work desktop
+nltk.data.path.append('D:/PythonData/nltk_data')
+lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
+descFilePath = 'D:/BioNLP/desc2017.xml'
+suppFilePath = 'D:/BioNLP/supp2017.xml'
+descriptorPath = 'D:/BioNLP/parsed.pickle'
+errorsFilePath = 'D:/BioNLP/errors.txt'
 
 # home laptop
-nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-lines = open('c:/users/ben/desktop/bionlp/threeormore_trimmed.txt', 'r').readlines()
-descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
-descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
-suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
-errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
+#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+#lines = open('c:/users/ben/desktop/bionlp/threeormore_trimmed.txt', 'r').readlines()
+#descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
+#descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
+#suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
+#errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
 
 toMatchEntries = []
 for line in lines:
@@ -200,7 +213,16 @@ for line in lines:
 #    suppFilePath, descriptorPath)
 meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
+dict = {}
+for record in meshDescriptorRecords:
+    lines.append(record.MainEntry.Line.lower().translate(None, string.punctuation))
 
+    if phrase in record.MainEntry.Line.lower():
+        count = count + 1
+
+    for synonym in record.Synonyms:
+        if phrase in synonym.Line.lower():
+            count = count + 1
 
 errors = open(errorsFilePath,'w+')
 matches = []
