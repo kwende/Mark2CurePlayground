@@ -6,6 +6,7 @@ import numpy as np
 from nltk.stem import *
 import nltk
 from nltk import word_tokenize
+import pickle
 
 def TfidTokenizer(text):
     stemmer = PorterStemmer()
@@ -30,8 +31,12 @@ phrase = ["type-2 diabetes"]
 
 # You could do it like this:
 vectorizer = TfidfVectorizer(stop_words='english')
+
 all_phrases = phrase + my_phrases
 my_features = vectorizer.fit_transform(all_phrases)
+
+#with open("C:/users/ben/desktop/vector.pickle", "wb") as p:
+#    pickle.dump(vectorizer, p)
 
 #interesting. this computes the dot product for all the vectors against the 
 #first vector. and then returns the results as an array, which can have argmax 

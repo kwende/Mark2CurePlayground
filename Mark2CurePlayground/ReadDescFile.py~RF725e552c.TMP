@@ -224,11 +224,9 @@ output = tfidf.transform(["type-2 diabetes"])
 
 result = ((output * features.T).A[0])
 
-choices = np.argpartition(result, -4)[-4:]
+choice = np.argmax(result)
 
-pickedPhrases = []
-for choice in choices:
-    pickedPhrases.append(corpus[choice])
+phrase = corpus[choice]
 
 print("Process took " + str((end - start).total_seconds()) + " seconds.")
 
