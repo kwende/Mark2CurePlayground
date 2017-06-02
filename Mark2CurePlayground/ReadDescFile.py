@@ -36,12 +36,25 @@ class Term:
 
         return isPerfectMatch
 
+    def IsExactMatchAbbreviationAfterEllipsesRemoved(self, otherEntry):
+        line = otherEntry.Line.lower()
+        isMatch = False
+
+        if line == re.sub("[\(\[].*?[\)\]]", "", self.MainEntry.Line).lower().strip():
+            isMatch = True
+        else:
+            for synonym in self.Synonyms:
+                if line == re.sub("[\(\[].*?[\)\]]", "", synonym.Line).lower().strip():
+                    isMatch = True
+                    break
+        return isMatch
+
     def IsMatchableAbbreviation(self, otherEntry):
         isAbbreviationMatch = False
         match = re.fullmatch(r'\b[A-Z]*', otherEntry.Line)
         if match:
             abbreviation = otherEntry.Abbreviation.lower()
-            if abbreviation == self.MainEntry.Line.lower():
+            if abbreviation == self.MainEntry.Abbreviation.lower():
                 isAbbreviationMatch = True
             else:
                 for synonym in self.Synonyms:
@@ -85,7 +98,6 @@ class Term:
         isMatch = False
 
         if len(self.MainEntry.Stems) == len(otherEntry.Stems):
-
             matches = 0
             # Check main entry
             for mainStem in self.MainEntry.Stems:
@@ -111,13 +123,11 @@ class Term:
         if len(otherEntry.Tokens) > 0:
             if self.MainEntry.Line.lower() in otherEntry.Line.lower() and \
                 (len(self.MainEntry.Line) / len(otherEntry.Line)) > .7:
-                print(self.MainEntry.Line + " exists in " + otherEntry.Line)
                 isMatch = True
             else:
                 for synonym in self.Synonyms:
                     if synonym.Line.lower() in otherEntry.Line.lower() and \
                     (len(synonym.Line) / len(otherEntry.Line)) > .7:
-                        print(synonym.Line + " exists in " + otherEntry.Line)
                         isMatch = True
 
         return isMatch
@@ -180,23 +190,22 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
     return terms
 
 # work desktop
-#nltk.data.path.append('D:/PythonData/nltk_data')
-#lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
-#descFilePath = 'D:/BioNLP/desc2017.xml'
-#suppFilePath = 'D:/BioNLP/supp2017.xml'
-#descriptorPath = 'D:/BioNLP/parsed.pickle'
-#errorsFilePath = 'D:/BioNLP/errors.txt'
-
-posTags = nltk.pos_tag(word_tokenize("Congenital disorder of glycosylation type Ij"))
+nltk.data.path.append('D:/PythonData/nltk_data')
+lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
+descFilePath = 'D:/BioNLP/desc2017.xml'
+suppFilePath = 'D:/BioNLP/supp2017.xml'
+descriptorPath = 'D:/BioNLP/parsed.pickle'
+errorsFilePath = 'D:/BioNLP/errors.txt'
+matchFilesPath = 'D:/BioNLP/matchFile.txt'
 
 # home laptop
-nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-lines = open('c:/users/ben/desktop/bionlp/threeormore_trimmed.txt', 'r').readlines()
-descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
-descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
-suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
-errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
-
+#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+#lines = open('c:/users/ben/desktop/bionlp/threeormore_trimmed.txt',
+#'r').readlines()
+#descriptorPath = "c:/users/ben/desktop/bionlp/parsed.pickle"
+#descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
+#suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
+#errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
 toMatchEntries = []
 for line in lines:
     entry = Entry(line)
@@ -217,90 +226,97 @@ for meshDescriptorRecord in meshDescriptorRecords:
 print("...starting the transform.")
 start = dt.datetime.now()
 tfidf = TfidfVectorizer(stop_words="english")
-features = tfidf.fit_transform(corpus)
+featuresMatrix = tfidf.fit_transform(corpus)
 end = dt.datetime.now()
 
-output = tfidf.transform(["type-2 diabetes"])
+#output = tfidf.transform(["type-2 diabetes"])
+#result = ((output * features.T).A[0])
+#choices = np.argpartition(result, -4)[-4:]
 
-result = ((output * features.T).A[0])
+#pickedPhrases = []
+#for choice in choices:
+#    pickedPhrases.append(corpus[choice])
 
-choices = np.argpartition(result, -4)[-4:]
+#print("Process took " + str((end - start).total_seconds()) + " seconds.")
 
-pickedPhrases = []
-for choice in choices:
-    pickedPhrases.append(corpus[choice])
+#with open("c:/users/brush/desktop/tfidf.pickle", "wb") as p:
+#    pickle.dump(tfidf, p)
 
-print("Process took " + str((end - start).total_seconds()) + " seconds.")
+#with open("c:/users/brush/desktop/features.pickle", "wb") as p:
+#    pickle.dump(features, p)
+matchFile = open(matchFilesPath,'w+')
+matches = []
+toMatchCount = 1
 
-with open("c:/users/ben/desktop/tfidf.pickle", "wb") as p:
-    pickle.dump(tfidf, p)
+fullMatch = 0
+abbreviationMatch = 0
+sansTypeMatch = 0
+failureCount = 0
+spacingFix = 0
+exactStemMatch = 0
+existsIn = 0
 
-with open("c:/users/ben/desktop/features.pickle", "wb") as p:
-    pickle.dump(features, p)
+#toMatchEntries = [e for e in toMatchEntries if e.Line == "ALS"]
+#meshDescriptorRecords = [d for d in meshDescriptorRecords if d.MainEntry.Line == "Amyotrophic Lateral Sclerosis"]
 
-#errors = open(errorsFilePath,'w+')
-#matches = []
-#toMatchCount = 1
+for toMatchEntry in toMatchEntries:
+    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
+    toMatchCount = toMatchCount + 1
 
-#fullMatch = 0
-#abbreviationMatch = 0
-#sansTypeMatch = 0
-#failureCount = 0
-#spacingFix = 0
-#exactStemMatch = 0
-#existsIn = 0
+    exactMatchDescriptor = None
+    highestScore = 0
+    currentScore = 0
+    # try to find exact matches, or very, very close to exact.
+    for meshDescriptorRecord in meshDescriptorRecords:
+        if meshDescriptorRecord.IsExactMatch(toMatchEntry):
+            fullMatch = fullMatch + 1
+            currentScore = 6
+        elif meshDescriptorRecord.ExactMatchOfStems(toMatchEntry):
+            exactStemMatch = exactStemMatch + 1
+            currentScore = 5
+        elif meshDescriptorRecord.ExactMatchButErroneousSpacePlacement(toMatchEntry):
+            spacingFix = spacingFix + 1
+            currentScore = 5
+        elif meshDescriptorRecord.IsExactMatchAbbreviationAfterEllipsesRemoved(toMatchEntry):
+            currentScore = 4.5
+        elif meshDescriptorRecord.PhraseExistsIn(toMatchEntry):
+            existsIn = existsIn + 1
+            currentScore = 4
+        elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
+            sansTypeMatch = sansTypeMatch + 1
+            currentScore = 3
+        elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
+            abbreviationMatch = abbreviationMatch + 1
+            currentScore = 2
+        
+        if highestScore < currentScore:
+            exactMatchDescriptor = meshDescriptorRecord
+            highestScore = currentScore
 
-#for toMatchEntry in toMatchEntries:
-#    #print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
-#    toMatchCount = toMatchCount + 1
+    if highestScore == 0:
+        # find best.  couldn't get best match.
+        matchMatrix = tfidf.transform([toMatchEntry.Line])
+        resultMatrix = ((matchMatrix * featuresMatrix.T).A[0])
+        bestChoicesIndices = np.argpartition(resultMatrix, -4)[-4:]
+        matchFile.write(toMatchEntry.Line + ": \n")
+        for bestChoiceIndex in bestChoicesIndices:
+            matchFile.write("\t" + corpus[bestChoiceIndex] + "\n")
+    else:
+        matchFile.write(toMatchEntry.Line + ": \n\t" + exactMatchDescriptor.MainEntry.Line + "\n")
 
-#    exactFound = False
+    #if not exactFound:
+    #    failureCount = failureCount + 1
+    #    #errors.write(toMatchEntry.Line + "\n")
+    #else:
+    #    matches.append(toMatchEntry)
+matchFile.close()
 
-#    floaters = {}
-#    for meshDescriptorRecord in meshDescriptorRecords:
-
-#        # these should be exact or near-exact matches. just variants. 
-#        if meshDescriptorRecord.IsExactMatch(toMatchEntry):
-#            fullMatch = fullMatch + 1
-#            exactFound = True
-#            break
-#        elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
-#            exactFound = True
-#            abbreviationMatch = abbreviationMatch + 1
-#            break
-#        elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
-#            exactFound = True
-#            sansTypeMatch = sansTypeMatch + 1
-#            break
-#        elif meshDescriptorRecord.ExactMatchButErroneousSpacePlacement(toMatchEntry):
-#            spacingFix = spacingFix + 1
-#            exactFound = True
-#            break
-#        elif meshDescriptorRecord.ExactMatchOfStems(toMatchEntry):
-#            exactStemMatch = exactStemMatch + 1
-#            exactFound = True
-#            break
-#        elif meshDescriptorRecord.PhraseExistsIn(toMatchEntry):
-#            existsIn = existsIn + 1
-#            exactFound = True
-#            break
-
-
-
-#    if not exactFound:
-#        failureCount = failureCount + 1
-#        errors.write(toMatchEntry.Line + "\n")
-#    else:
-#        matches.append(toMatchEntry)
-
-#errors.close()
-
-##http://www.nltk.org/howto/wordnet.html
-#print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
-#print("Full match " + str(fullMatch))
-#print("Abbreviation Match: " + str(abbreviationMatch))
-#print("Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
-#print("Exact stem match: " + str(exactStemMatch))
-#print("Exists in: " + str(existsIn))
+#http://www.nltk.org/howto/wordnet.html
+print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
+print("Full match " + str(fullMatch))
+print("Abbreviation Match: " + str(abbreviationMatch))
+print("Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
+print("Exact stem match: " + str(exactStemMatch))
+print("Exists in: " + str(existsIn))
 #print("====")
 #print("Failure count: " + str(failureCount))
