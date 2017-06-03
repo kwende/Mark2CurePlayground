@@ -12,6 +12,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.stem.porter import PorterStemmer
 import numpy as np
 
+#regex to use: \( ?[A-Z]* ?\)
+
 #http://www.nltk.org/howto/metrics.html
 #https://www.nlm.nih.gov/mesh/topsubscope.html*-
 class Term:
