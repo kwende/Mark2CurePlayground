@@ -32,5 +32,8 @@ if match:
         if not stillGood:
             break
 
-    possiblePhrase = txt[indices[len(indices)-1]:strIndex-1].strip()
-    print()
+    if stillGood:
+        possiblePhrase = txt[indices[len(indices)-1]:strIndex-1].strip()
+        print(possiblePhrase)
+    else:
+        print("not found.")

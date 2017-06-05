@@ -51,20 +51,6 @@ class Term:
                     break
         return isMatch
 
-    def IsMatchableAbbreviation(self, otherEntry):
-        isAbbreviationMatch = False
-        match = re.fullmatch(r'\b[A-Z]*', otherEntry.Line)
-        if match:
-            abbreviation = otherEntry.Abbreviation.lower()
-            if abbreviation == self.MainEntry.Abbreviation.lower():
-                isAbbreviationMatch = True
-            else:
-                for synonym in self.Synonyms:
-                    if synonym.Abbreviation.lower() == abbreviation:
-                        isAbbreviationMatch = True
-                        break
-        return isAbbreviationMatch
-        
     def IsExactMatchSansType(self, otherEntry):
         isMatch = False
         matchLineSansType = otherEntry.Line.lower()
@@ -136,11 +122,53 @@ class Term:
 
 class Entry:
 
-    def __init__(self, line):
+    def FindAbbreviationText(self, abbreviation, txt):
+
+        ret = None
+        match = re.search(r"\( ?" + abbreviation.upper() +" ?\)", txt)
+        if match:
+            str = match.group(0).replace(")","").replace("(","").strip()
+            strAsCharsReversed = list(reversed(list(str.lower())))
+            strIndex = txt.index(match.group(0))
+            curIndex = strIndex - 1
+            failureCount = 0
+            indices = []
+            stillGood = True
+
+            for char in strAsCharsReversed:
+
+                for i in reversed(range(curIndex)):
+                    if txt[i].lower() == char and i > 0 and txt[i - 1] == ' ':
+                        failureCount = 0
+                        indices.append(i)
+                        curIndex = i
+                        break
+                    elif i==0 and txt[i].lower() == char:
+                        failureCount = 0
+                        indices.append(i)
+                        break
+                    elif txt[i] == ' ':
+                        failureCount = failureCount + 1
+
+                    if failureCount >= 3:
+                        stillGood = False
+                        break
+
+                if not stillGood:
+                    break
+
+            if stillGood:
+                ret = txt[indices[len(indices) - 1]:strIndex - 1].strip()
+
+            return ret
+
+    def __init__(self, line, context):
         self.Line = ""
         self.Tokens = []
         self.Stems = []
-        self.Abbreviation = ""
+        self.IsAbbreviation = False
+        self.LikelyAbbreviationWords = ""
+        self.Context = context
 
         line = line.replace(',','').replace('\n','')
         self.Line = line
@@ -152,10 +180,9 @@ class Entry:
         # is this already an abbreviation?
         match = re.fullmatch(r'\b[A-Z]+', line)
         
-        if match:
-            self.Abbreviation = line
-        else:
-            self.Abbreviation = ''.join([t[0][0].upper() for t in self.PosTags if t[1] != "IN"])
+        if match and context:
+            self.Abbreviation = True
+            LikelyAbbreviationWords = self.FindAbbreviationText(line.strip(), self.Context)
 
 def CreateAndSerializeMeshDescriptorRecords(xmlDescPath, xmlSupplePath, outputPicklePath):
     descTree = lxml.etree.parse(xmlDescPath)
@@ -191,14 +218,42 @@ def LoadAndDeserializeMeshDescriptorRecords(descriptorPath):
 
     return terms
 
+def LoadEntriesFromMark2CureFile(path, minToCount):
+    phrases = {}
+    #tree = lxml.etree.parse('C:/Users/ben/desktop/group 25.xml')
+    tree = lxml.etree.parse(path)
+
+    passages = tree.xpath(".//document/passage/text")
+
+    for passage in passages:
+
+        phrasesThatMatter = []
+        annotationTexts = passage.xpath("../annotation/infon[@key='type' and text() = 'disease']/../text/text()")
+        annotationCounts = {}
+        for annotationText in annotationTexts:
+            if not annotationText in annotationCounts:
+                annotationCounts[annotationText] = 1
+            else:
+                annotationCounts[annotationText] = annotationCounts[annotationText] + 1
+        phrasesThatMatter = [k for k,v in annotationCounts.items() if v > minToCount]
+
+        phrases[passage.text] = phrasesThatMatter
+
+    ret = []
+    for k,vs in phrases.items():
+        for v in vs:
+            ret.append(Entry(v, k))
+            
+    return ret 
+
 # work desktop
 nltk.data.path.append('D:/PythonData/nltk_data')
-lines = open('c:/users/brush/desktop/threeormore.txt', 'r').readlines()
 descFilePath = 'D:/BioNLP/desc2017.xml'
 suppFilePath = 'D:/BioNLP/supp2017.xml'
 descriptorPath = 'D:/BioNLP/parsed.pickle'
 errorsFilePath = 'D:/BioNLP/errors.txt'
 matchFilesPath = 'D:/BioNLP/matchFile.txt'
+mark2CureFile = 'D:/BioNLP/group 25.xml'
 
 # home laptop
 #nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
@@ -208,10 +263,7 @@ matchFilesPath = 'D:/BioNLP/matchFile.txt'
 #descFilePath = 'C:/Users/Ben/Desktop/BioNLP/desc2017.xml'
 #suppFilePath = 'C:/Users/Ben/Desktop/BioNLP/supp2017.xml'
 #errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
-toMatchEntries = []
-for line in lines:
-    entry = Entry(line)
-    toMatchEntries.append(entry)
+toMatchEntries = LoadEntriesFromMark2CureFile(mark2CureFile, 4)
 
 #meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords(descFilePath,
 #    suppFilePath, descriptorPath)
@@ -231,21 +283,6 @@ tfidf = TfidfVectorizer(stop_words="english")
 featuresMatrix = tfidf.fit_transform(corpus)
 end = dt.datetime.now()
 
-#output = tfidf.transform(["type-2 diabetes"])
-#result = ((output * features.T).A[0])
-#choices = np.argpartition(result, -4)[-4:]
-
-#pickedPhrases = []
-#for choice in choices:
-#    pickedPhrases.append(corpus[choice])
-
-#print("Process took " + str((end - start).total_seconds()) + " seconds.")
-
-#with open("c:/users/brush/desktop/tfidf.pickle", "wb") as p:
-#    pickle.dump(tfidf, p)
-
-#with open("c:/users/brush/desktop/features.pickle", "wb") as p:
-#    pickle.dump(features, p)
 matchFile = open(matchFilesPath,'w+')
 matches = []
 toMatchCount = 1
@@ -259,8 +296,8 @@ exactStemMatch = 0
 existsIn = 0
 
 #toMatchEntries = [e for e in toMatchEntries if e.Line == "ALS"]
-#meshDescriptorRecords = [d for d in meshDescriptorRecords if d.MainEntry.Line == "Amyotrophic Lateral Sclerosis"]
-
+#meshDescriptorRecords = [d for d in meshDescriptorRecords if d.MainEntry.Line
+#== "Amyotrophic Lateral Sclerosis"]
 for toMatchEntry in toMatchEntries:
     print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
     toMatchCount = toMatchCount + 1
@@ -287,9 +324,6 @@ for toMatchEntry in toMatchEntries:
         elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
             sansTypeMatch = sansTypeMatch + 1
             currentScore = 3
-        elif meshDescriptorRecord.IsMatchableAbbreviation(toMatchEntry):
-            abbreviationMatch = abbreviationMatch + 1
-            currentScore = 2
         
         if highestScore < currentScore:
             exactMatchDescriptor = meshDescriptorRecord
@@ -297,6 +331,12 @@ for toMatchEntry in toMatchEntries:
 
     if highestScore == 0:
         # find best.  couldn't get best match.
+        toFind = ""
+        if toMatchEntry.IsAbbreviation and toMatchEntry.LikelyAbbreviationWords:
+            toFind = toMatchEntry.LikelyAbbreviationWords
+        else:
+            toFind = toMatchEntry.Line
+
         matchMatrix = tfidf.transform([toMatchEntry.Line])
         resultMatrix = ((matchMatrix * featuresMatrix.T).A[0])
         bestChoicesIndices = np.argpartition(resultMatrix, -4)[-4:]
