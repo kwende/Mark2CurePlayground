@@ -125,7 +125,7 @@ class Entry:
     def FindAbbreviationText(self, abbreviation, txt):
 
         ret = None
-        match = re.search(r"\( ?" + abbreviation.upper() +" ?\)", txt)
+        match = re.search(r"\( ?" + abbreviation.upper() + " ?\)", txt)
         if match:
             str = match.group(0).replace(")","").replace("(","").strip()
             strAsCharsReversed = list(reversed(list(str.lower())))
@@ -143,7 +143,7 @@ class Entry:
                         indices.append(i)
                         curIndex = i
                         break
-                    elif i==0 and txt[i].lower() == char:
+                    elif i == 0 and txt[i].lower() == char:
                         failureCount = 0
                         indices.append(i)
                         break
@@ -256,6 +256,7 @@ descriptorPath = 'D:/BioNLP/parsed.pickle'
 errorsFilePath = 'D:/BioNLP/errors.txt'
 matchFilesPath = 'D:/BioNLP/matchFile.txt'
 mark2CureFile = 'D:/BioNLP/group 25.xml'
+failureFile = 'D:/BioNLP/failures.txt'
 
 # home laptop
 #nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
@@ -286,6 +287,7 @@ featuresMatrix = tfidf.fit_transform(corpus)
 end = dt.datetime.now()
 
 matchFile = open(matchFilesPath,'w+')
+failureFile = open(failureFile, 'w+')
 matches = []
 toMatchCount = 1
 
@@ -300,7 +302,6 @@ existsIn = 0
 #toMatchEntries = [e for e in toMatchEntries if e.Line == "ALS"]
 #meshDescriptorRecords = [d for d in meshDescriptorRecords if d.MainEntry.Line
 #== "Amyotrophic Lateral Sclerosis"]
-
 for toMatchEntry in toMatchEntries:
     print(str(toMatchCount) + "/" + str(len(toMatchEntries)) + "(" + toMatchEntry.Line + ")")
     toMatchCount = toMatchCount + 1
@@ -342,10 +343,14 @@ for toMatchEntry in toMatchEntries:
 
         matchMatrix = tfidf.transform([toFind])
         resultMatrix = ((matchMatrix * featuresMatrix.T).A[0])
-        bestChoicesIndices = np.argpartition(resultMatrix, -4)[-4:]
-        matchFile.write(toMatchEntry.Line + ": \n")
-        for bestChoiceIndex in bestChoicesIndices:
-            matchFile.write("\t" + corpus[bestChoiceIndex] + "\n")
+
+        if not np.any(resultMatrix):
+            failureFile.write(toMatchEntry.Line + "\n")
+        else:
+            bestChoicesIndices = np.argpartition(resultMatrix, -4)[-4:]
+            matchFile.write(toMatchEntry.Line + ": \n")
+            for bestChoiceIndex in bestChoicesIndices:
+                matchFile.write("\t" + corpus[bestChoiceIndex] + "\n")
     else:
         matchFile.write(toMatchEntry.Line + ": \n\t" + exactMatchDescriptor.MainEntry.Line + "\n")
 
@@ -355,6 +360,7 @@ for toMatchEntry in toMatchEntries:
     #else:
     #    matches.append(toMatchEntry)
 matchFile.close()
+failureFile.close()
 
 #http://www.nltk.org/howto/wordnet.html
 print("Match score is " + str((len(matches) / (len(toMatchEntries)) * 100)) + "%")
