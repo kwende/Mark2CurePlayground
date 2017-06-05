@@ -181,8 +181,10 @@ class Entry:
         match = re.fullmatch(r'\b[A-Z]+', line)
         
         if match and context:
-            self.Abbreviation = True
-            LikelyAbbreviationWords = self.FindAbbreviationText(line.strip(), self.Context)
+            self.LikelyAbbreviationWords = self.FindAbbreviationText(line.strip(), self.Context)
+            if self.LikelyAbbreviationWords:
+                self.IsAbbreviation = True
+                print(line + "--->" + self.LikelyAbbreviationWords)
 
 def CreateAndSerializeMeshDescriptorRecords(xmlDescPath, xmlSupplePath, outputPicklePath):
     descTree = lxml.etree.parse(xmlDescPath)
@@ -298,8 +300,9 @@ existsIn = 0
 #toMatchEntries = [e for e in toMatchEntries if e.Line == "ALS"]
 #meshDescriptorRecords = [d for d in meshDescriptorRecords if d.MainEntry.Line
 #== "Amyotrophic Lateral Sclerosis"]
+
 for toMatchEntry in toMatchEntries:
-    print(str(toMatchCount) + "/" + str(len(toMatchEntries)))
+    print(str(toMatchCount) + "/" + str(len(toMatchEntries)) + "(" + toMatchEntry.Line + ")")
     toMatchCount = toMatchCount + 1
 
     exactMatchDescriptor = None
@@ -337,7 +340,7 @@ for toMatchEntry in toMatchEntries:
         else:
             toFind = toMatchEntry.Line
 
-        matchMatrix = tfidf.transform([toMatchEntry.Line])
+        matchMatrix = tfidf.transform([toFind])
         resultMatrix = ((matchMatrix * featuresMatrix.T).A[0])
         bestChoicesIndices = np.argpartition(resultMatrix, -4)[-4:]
         matchFile.write(toMatchEntry.Line + ": \n")
