@@ -176,6 +176,7 @@ class Entry:
         porter = PorterStemmer()
         self.Stems = [porter.stem(t) for t in self.Tokens]
         self.PosTags = nltk.pos_tag(self.Tokens)
+        self.PossibleAbbreviation = ""
 
         # is this already an abbreviation?
         match = re.fullmatch(r'\b[A-Z]+', line)
@@ -261,12 +262,13 @@ def FindAllPossibleIfAbbreviation(text, meshDescriptorRecords):
 
         bestMatchScore = 0
 
-        for toMatchItem in toMatchItems:
-            for meshDescriptorRecord in meshDescriptorRecords:
-                tokens = word_tokenize(meshDescriptorRecord.MainEntry.Line)
-                posTags = nltk.pos_tag(tokens)
-                abbreviationChars = [t[0][0] for t in posTags if not t[1] == "IN"]
+        #for toMatchItem in toMatchItems:
+        #    for meshDescriptorRecord in meshDescriptorRecords:
+        #        tokens = word_tokenize(meshDescriptorRecord.MainEntry.Line)
+        #        posTags = nltk.pos_tag(tokens)
+        #        abbreviationChars = [t[0][0] for t in posTags if not t[1] == "IN"]
                 
+        #        print()
 
     return
 
