@@ -181,9 +181,9 @@ class Entry:
         match = re.fullmatch(r'\b[A-Z]+', line)
         
         if match and context:
+            self.IsAbbreviation = True
             self.LikelyAbbreviationWords = self.FindAbbreviationText(line.strip(), self.Context)
             if self.LikelyAbbreviationWords:
-                self.IsAbbreviation = True
                 print(line + "--->" + self.LikelyAbbreviationWords)
 
 def CreateAndSerializeMeshDescriptorRecords(xmlDescPath, xmlSupplePath, outputPicklePath):
@@ -247,6 +247,28 @@ def LoadEntriesFromMark2CureFile(path, minToCount):
             ret.append(Entry(v, k))
             
     return ret 
+
+def FindAllPossibleIfAbbreviation(text, meshDescriptorRecords):
+    match = re.fullmatch(r'\b[A-Z0-9]+(-[A-Z0-9]*)?', text)
+
+    if match: 
+        str = match.group(0)
+        toMatchItems = []
+        if "-" in str:
+            toMatchItems = str.split("-")
+        else:
+            toMatchItems = [str]
+
+        bestMatchScore = 0
+
+        for toMatchItem in toMatchItems:
+            for meshDescriptorRecord in meshDescriptorRecords:
+                tokens = word_tokenize(meshDescriptorRecord.MainEntry.Line)
+                posTags = nltk.pos_tag(tokens)
+                abbreviationChars = [t[0][0] for t in posTags if not t[1] == "IN"]
+                
+
+    return
 
 # work desktop
 nltk.data.path.append('D:/PythonData/nltk_data')
@@ -322,12 +344,6 @@ for toMatchEntry in toMatchEntries:
             currentScore = 5
         elif meshDescriptorRecord.IsExactMatchAbbreviationAfterEllipsesRemoved(toMatchEntry):
             currentScore = 4.5
-        elif meshDescriptorRecord.PhraseExistsIn(toMatchEntry):
-            existsIn = existsIn + 1
-            currentScore = 4
-        elif meshDescriptorRecord.IsExactMatchSansType(toMatchEntry):
-            sansTypeMatch = sansTypeMatch + 1
-            currentScore = 3
         
         if highestScore < currentScore:
             exactMatchDescriptor = meshDescriptorRecord
@@ -345,6 +361,7 @@ for toMatchEntry in toMatchEntries:
         resultMatrix = ((matchMatrix * featuresMatrix.T).A[0])
 
         if not np.any(resultMatrix):
+            FindAllPossibleIfAbbreviation(toMatchEntry.Line, meshDescriptorRecords)
             failureFile.write(toMatchEntry.Line + "\n")
         else:
             bestChoicesIndices = np.argpartition(resultMatrix, -4)[-4:]
@@ -354,11 +371,6 @@ for toMatchEntry in toMatchEntries:
     else:
         matchFile.write(toMatchEntry.Line + ": \n\t" + exactMatchDescriptor.MainEntry.Line + "\n")
 
-    #if not exactFound:
-    #    failureCount = failureCount + 1
-    #    #errors.write(toMatchEntry.Line + "\n")
-    #else:
-    #    matches.append(toMatchEntry)
 matchFile.close()
 failureFile.close()
 
@@ -369,5 +381,3 @@ print("Abbreviation Match: " + str(abbreviationMatch))
 print("Sans Type: " + str(sansTypeMatch) + ", Spacing fix: " + str(spacingFix))
 print("Exact stem match: " + str(exactStemMatch))
 print("Exists in: " + str(existsIn))
-#print("====")
-#print("Failure count: " + str(failureCount))
