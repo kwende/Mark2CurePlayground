@@ -262,13 +262,13 @@ def FindAllPossibleIfAbbreviation(text, meshDescriptorRecords):
 
         bestMatchScore = 0
 
-        #for toMatchItem in toMatchItems:
-        #    for meshDescriptorRecord in meshDescriptorRecords:
-        #        tokens = word_tokenize(meshDescriptorRecord.MainEntry.Line)
-        #        posTags = nltk.pos_tag(tokens)
-        #        abbreviationChars = [t[0][0] for t in posTags if not t[1] == "IN"]
+        for toMatchItem in toMatchItems:
+            for meshDescriptorRecord in meshDescriptorRecords:
+                tokens = word_tokenize(meshDescriptorRecord.MainEntry.Line)
+                posTags = nltk.pos_tag(tokens)
+                abbreviationChars = [t[0][0] for t in posTags if not t[1] == "IN"]
                 
-        #        print()
+                print()
 
     return
 
@@ -292,9 +292,9 @@ failureFile = 'D:/BioNLP/failures.txt'
 #errorsFilePath = 'C:/Users/Ben/Desktop/BioNLP/errors.txt'
 toMatchEntries = LoadEntriesFromMark2CureFile(mark2CureFile, 4)
 
-#meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords(descFilePath,
-#    suppFilePath, descriptorPath)
-meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
+meshDescriptorRecords = CreateAndSerializeMeshDescriptorRecords(descFilePath,
+    suppFilePath, descriptorPath)
+#meshDescriptorRecords = LoadAndDeserializeMeshDescriptorRecords(descriptorPath)
 
 corpus = []
 translator = str.maketrans('', '', string.punctuation)
