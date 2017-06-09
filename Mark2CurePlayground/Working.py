@@ -14,6 +14,8 @@ import numpy as np
 
 import os.path
 
+from nltk.metrics import *
+
 class MeshRecord:
 
     def __init__(self, mainLine, synonyms):
@@ -41,6 +43,24 @@ class MeshRecord:
                 if synonym.lower() == textToMatch:
                     quality = 1
                     break
+
+    def GetAbbreviationQuality(self, abbreviation):
+
+        tokens = word_tokenize(self.MainLine)
+        probableAbbreviationLetters = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
+
+        smallestDistance = edit_distance(abbreviation, probableAbbreviationLetters)
+
+        for synonym in self.Synonyms:
+            tokens = word_tokenize(self.MainLine)
+            probableAbbreviationLetters = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
+
+            curDistance = edit_distance(abbreviation, probableAbbreviationLetters)
+            if curDistance < smallestDistance:
+                smallestDistance = curDistance
+
+        return smallestDistance
+
 
 class Mark2CureQuery:
 
@@ -166,7 +186,7 @@ def FindRecommendations(query, meshRecords, tfidf, numberOfRecommendations):
     
     meshRecordsToReturn = []
 
-    # can i find an exact match? 
+    # can i find an exact match?
     for meshRecord in meshRecords:
         if meshRecord.IsExactMatch(query):
             meshRecordsToReturn.append(meshRecord)
@@ -176,7 +196,8 @@ def FindRecommendations(query, meshRecords, tfidf, numberOfRecommendations):
     if len(meshRecordsToReturn) == 0:
         meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(query.Tag, numberOfRecommendations)
 
-    # still nothing? is this an abbreviation? Can we pull out its meaning from the source text? 
+    # still nothing?  is this an abbreviation?  Can we pull out its meaning
+    # from the source text?
     if len(meshRecordsToReturn) == 0:
         matches = re.fullmatch(r"[A-Z0-9]*(-[A-Z0-9a-z]*)?", query.Tag)
         if matches:
@@ -184,16 +205,25 @@ def FindRecommendations(query, meshRecords, tfidf, numberOfRecommendations):
             if possibleMeaning:
                 meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(possibleMeaning, numberOfRecommendations)
 
-                # if we still haven't gotten anything, is there a slash we can 
-                # use to separate and try that way? 
-                if len(meshRecordsToReturn) == 0:
-                    if "-" in query.Tag:
-                        bits = query.Tag.split("-")
-                        for bit in bits:
-                            possibleMeaning = query.FindAbbreviationMeaningInSource(bit)
-                            if possibleMeaning:
-                                meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(possibleMeaning, numberOfRecommendations)
+    # still nothing?  is this an abbreviation that we can
+    # maybe try finding matching letters in the mesh list?
+    if len(meshRecordsToReturn) == 0:
+        matches = re.fullmatch(r"[A-Z0-9]*(-[A-Z0-9a-z]*)?", query.Tag)
+        if matches:
+            smallestDistance = 100000000
 
+            bestDistances = []
+            for meshRecord in meshRecords:
+                curDistance = meshRecord.GetAbbreviationQuality(query.Tag)
+                if curDistance < len(query.Tag) * .5:
+                    if curDistance < smallestDistance:
+                        smallestDistance = curDistance
+                        bestDistances = []
+                        bestDistances.append(meshRecord)
+                    elif curDistance == smallestDistance:
+                        bestDistances.append(meshRecord)
+
+            meshRecordsToReturn = meshRecordsToReturn + bestDistances
 
     return meshRecordsToReturn
 
