@@ -23,6 +23,14 @@ class MeshRecord:
         self.MainLine = self.CleanText(mainLine)
         self.Synonyms = [self.CleanText(s) for s in synonyms]
 
+        tokens = word_tokenize(self.MainLine)
+        self.MainLineAbbreviation = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
+
+        self.SynonymAbbreviations = []
+        for synonym in self.Synonyms:
+            tokens = word_tokenize(synonym)
+            self.SynonymAbbreviations.append("".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"]))
+
         return
 
     def CleanText(self, text):
@@ -46,16 +54,10 @@ class MeshRecord:
 
     def GetAbbreviationQuality(self, abbreviation):
 
-        tokens = word_tokenize(self.MainLine)
-        probableAbbreviationLetters = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
+        smallestDistance = edit_distance(abbreviation, self.MainLineAbbreviation)
 
-        smallestDistance = edit_distance(abbreviation, probableAbbreviationLetters)
-
-        for synonym in self.Synonyms:
-            tokens = word_tokenize(self.MainLine)
-            probableAbbreviationLetters = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
-
-            curDistance = edit_distance(abbreviation, probableAbbreviationLetters)
+        for synonymAbbreviation in self.SynonymAbbreviations:
+            curDistance = edit_distance(abbreviation, synonymAbbreviation)
             if curDistance < smallestDistance:
                 smallestDistance = curDistance
 
@@ -265,45 +267,45 @@ suppFilePath = 'D:/BioNLP/supp2017.xml'
 pickledDescriptorsPath = 'D:/BioNLP/descriptors.pickle'
 errorsFilePath = 'D:/BioNLP/errors.txt'
 matchFilesPath = 'D:/BioNLP/matchFile.txt'
-mark2CureFile = 'D:/BioNLP/group 25.xml'
+mark2CureFile = 'D:/BioNLP/group 26.xml'
 failureFile = 'D:/BioNLP/failures.txt'
 
 # either read anew and serialize, or deserialize from disk
 print("Reading records disk...")
-#records = BuildMeshRecordsFromDisk(descFilePath)
-#with open(pickledDescriptorsPath, "wb") as p:
-#    pickle.dump(records, p)
-meshRecords = ReadMeshRecordsFromDisk(pickledDescriptorsPath)
+records = BuildMeshRecordsFromDisk(descFilePath)
+with open(pickledDescriptorsPath, "wb") as p:
+    pickle.dump(records, p)
+#meshRecords = ReadMeshRecordsFromDisk(pickledDescriptorsPath)
 print("...done")
 
-print("Training model from records...")
-tfidf = TFIDF()
-tfidf.TrainModel(meshRecords)
-print("...done")
+#print("Training model from records...")
+#tfidf = TFIDF()
+#tfidf.TrainModel(meshRecords)
+#print("...done")
 
-print("Load Mark2Cure data from disk...")
-mark2CureQueries = ReadMark2CureQueriesFromDisk(mark2CureFile, 4)
-print("...done")
+#print("Load Mark2Cure data from disk...")
+#mark2CureQueries = ReadMark2CureQueriesFromDisk(mark2CureFile, 4)
+#print("...done")
 
-print("Find matches...")
-if os.path.isfile(errorsFilePath):
-    os.remove(errorsFilePath)
-if os.path.isfile(matchFilesPath):
-    os.remove(matchFilesPath)
-errors = open(errorsFilePath, "w+")
-matches = open(matchFilesPath, "w+")
-count = 1
-for mark2CureQuery in mark2CureQueries:
-    recommendations = FindRecommendations(mark2CureQuery, meshRecords, tfidf, 4)
-    if len(recommendations) > 0:
-        matches.write(mark2CureQuery.Tag + "\n")
-        for recommendation in recommendations:
-            matches.write("\t" + recommendation.MainLine + "\n")
-    else:
-        errors.write(mark2CureQuery.Tag + "\n")
-    print(str(count) + " of " + str(len(mark2CureQueries)))
-    count = count + 1
-errors.close()
-matches.close()
+#print("Find matches...")
+#if os.path.isfile(errorsFilePath):
+#    os.remove(errorsFilePath)
+#if os.path.isfile(matchFilesPath):
+#    os.remove(matchFilesPath)
+#errors = open(errorsFilePath, "w+")
+#matches = open(matchFilesPath, "w+")
+#count = 1
+#for mark2CureQuery in mark2CureQueries:
+#    recommendations = FindRecommendations(mark2CureQuery, meshRecords, tfidf, 4)
+#    if len(recommendations) > 0:
+#        matches.write(mark2CureQuery.Tag + "\n")
+#        for recommendation in recommendations:
+#            matches.write("\t" + recommendation.MainLine + "\n")
+#    else:
+#        errors.write(mark2CureQuery.Tag + "\n")
+#    print(str(count) + " of " + str(len(mark2CureQueries)))
+#    count = count + 1
+#errors.close()
+#matches.close()
 
-print("...done")
+#print("...done")
