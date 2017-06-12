@@ -23,6 +23,14 @@ class MeshRecord:
         self.MainLine = self.CleanText(mainLine)
         self.Synonyms = [self.CleanText(s) for s in synonyms]
 
+        tokens = word_tokenize(self.MainLine)
+        self.MainLineAbbreviation = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
+
+        self.SynonymAbbreviations = []
+        for synonym in self.Synonyms:
+            tokens = word_tokenize(synonym)
+            self.SynonymAbbreviations.append("".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"]))
+
         return
 
     def CleanText(self, text):
@@ -46,20 +54,28 @@ class MeshRecord:
 
     def GetAbbreviationQuality(self, abbreviation):
 
-        tokens = word_tokenize(self.MainLine)
-        probableAbbreviationLetters = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
+        smallestDistance = edit_distance(abbreviation, self.MainLineAbbreviation)
 
-        smallestDistance = edit_distance(abbreviation, probableAbbreviationLetters)
-
-        for synonym in self.Synonyms:
-            tokens = word_tokenize(self.MainLine)
-            probableAbbreviationLetters = "".join([t[0][0] for t in nltk.pos_tag(tokens) if t[1] != "IN"])
-
-            curDistance = edit_distance(abbreviation, probableAbbreviationLetters)
+        for synonymAbbreviation in self.SynonymAbbreviations:
+            curDistance = edit_distance(abbreviation, synonymAbbreviation)
             if curDistance < smallestDistance:
                 smallestDistance = curDistance
 
         return smallestDistance
+
+    def DoesAbbreviationMatch(self, abbreviation):
+        matches = False
+
+        if abbreviation.lower() == self.MainLineAbbreviation:
+            matches = True
+        else:
+            for synonymAbbreviation in self.SynonymAbbreviations:
+                if synonymAbbreviation.lower() == abbreviation.lower():
+                    matches = True
+                    break
+
+        return matches; 
+
 
 
 class Mark2CureQuery:
@@ -204,26 +220,18 @@ def FindRecommendations(query, meshRecords, tfidf, numberOfRecommendations):
             possibleMeaning = query.FindAbbreviationMeaningInSource(query.Tag)
             if possibleMeaning:
                 meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(possibleMeaning, numberOfRecommendations)
+            if len(meshRecordsToReturn) == 0: # still nothing!?
+                #is this dash-separated? 
+                if "-" in query.Tag:
+                    parts = query.Tag.split('-')
+                    for part in parts:
+                        possibleMeaning = query.FindAbbreviationMeaningInSource(part)
+                        if possibleMeaning:
+                            meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(possibleMeaning, numberOfRecommendations)
 
-    # still nothing?  is this an abbreviation that we can
-    # maybe try finding matching letters in the mesh list?
-    if len(meshRecordsToReturn) == 0:
-        matches = re.fullmatch(r"[A-Z0-9]*(-[A-Z0-9a-z]*)?", query.Tag)
-        if matches:
-            smallestDistance = 100000000
-
-            bestDistances = []
-            for meshRecord in meshRecords:
-                curDistance = meshRecord.GetAbbreviationQuality(query.Tag)
-                if curDistance < len(query.Tag) * .5:
-                    if curDistance < smallestDistance:
-                        smallestDistance = curDistance
-                        bestDistances = []
-                        bestDistances.append(meshRecord)
-                    elif curDistance == smallestDistance:
-                        bestDistances.append(meshRecord)
-
-            meshRecordsToReturn = meshRecordsToReturn + bestDistances
+                    # STILL nothing!?!
+                    for part in parts: 
+                        meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(part, numberOfRecommendations)
 
     return meshRecordsToReturn
 
