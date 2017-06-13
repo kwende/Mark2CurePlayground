@@ -201,12 +201,12 @@ def BuildMeshRecordsFromDisk(xmlFilePath, suppXmlFilePath):
             if not supplementalRecordUI in existingSupplementalRecords:
                 existingSupplementalRecords.append(supplementalRecordUI)
 
-                disease = supplementalRecord.xpath(".//SupplementalRecordName/String/text()")
+                disease = supplementalRecord.xpath(".//SupplementalRecordName/String/text()")[0]
                 synonymsToUse = supplementalRecord.xpath(".//ConceptList/Concept/TermList/Term/String/text()")
                 
                 meshRecords.append(MeshRecord(disease, synonymsToUse))
         
-        print("Finished " + str(num) + " of " + str(len(diseases)))
+        print("Finished " + str(num) + " of " + str(len(descriptorUIs)))
         num = num + 1
 
     return meshRecords
@@ -291,24 +291,24 @@ def ReadMark2CureQueriesFromDisk(mark2CureFile, minToCount):
 ###########################################################
 
 # work desktop constants
-nltk.data.path.append('D:/PythonData/nltk_data')
-descFilePath = 'D:/BioNLP/desc2017.xml'
-suppFilePath = 'D:/BioNLP/supp2017.xml'
-pickledDescriptorsPath = 'D:/BioNLP/descriptors.pickle'
-errorsFilePath = 'D:/BioNLP/errors.txt'
-matchFilesPath = 'D:/BioNLP/matchFile.txt'
-mark2CureFile = 'D:/BioNLP/group 25.xml'
-failureFile = 'D:/BioNLP/failures.txt'
+#nltk.data.path.append('D:/PythonData/nltk_data')
+#descFilePath = 'D:/BioNLP/desc2017.xml'
+#suppFilePath = 'D:/BioNLP/supp2017.xml'
+#pickledDescriptorsPath = 'D:/BioNLP/descriptors.pickle'
+#errorsFilePath = 'D:/BioNLP/errors.txt'
+#matchFilesPath = 'D:/BioNLP/matchFile.txt'
+#mark2CureFile = 'D:/BioNLP/group 25.xml'
+#failureFile = 'D:/BioNLP/failures.txt'
 
 # surface constants
-#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-#descFilePath = 'c:/users/ben/desktop/BioNLP/desc2017.xml'
-#suppFilePath = 'c:/users/ben/desktop/BioNLP/supp2017.xml'
-#pickledDescriptorsPath = 'c:/users/ben/desktop/BioNLP/descriptors.pickle'
-#errorsFilePath = 'c:/users/ben/desktop/BioNLP/errors.txt'
-#matchFilesPath = 'c:/users/ben/desktop/BioNLP/matchFile.txt'
-#mark2CureFile = 'c:/users/ben/desktop/BioNLP/group 25.xml'
-#failureFile = 'c:/users/ben/desktop/BioNLP/failures.txt'
+nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+descFilePath = 'c:/users/ben/desktop/BioNLP/desc2017.xml'
+suppFilePath = 'c:/users/ben/desktop/BioNLP/supp2017.xml'
+pickledDescriptorsPath = 'c:/users/ben/desktop/BioNLP/descriptors.pickle'
+errorsFilePath = 'c:/users/ben/desktop/BioNLP/errors.txt'
+matchFilesPath = 'c:/users/ben/desktop/BioNLP/matchFile.txt'
+mark2CureFile = 'c:/users/ben/desktop/BioNLP/group 25.xml'
+failureFile = 'c:/users/ben/desktop/BioNLP/failures.txt'
 
 # either read anew and serialize, or deserialize from disk
 print("Reading records disk...")
