@@ -32,6 +32,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Experiments\ExamineOntologies.py" />
+    <Compile Include="Experiments\ExtractFirstChildNode.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Experiments\FindQualifiers.py">
       <SubType>Code</SubType>
     </Compile>

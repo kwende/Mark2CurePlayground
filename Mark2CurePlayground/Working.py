@@ -7,13 +7,10 @@ import pickle
 import re
 import string
 import datetime as dt
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.stem.porter import PorterStemmer
 import numpy as np
-
 import os.path
-
 from nltk.metrics import *
 
 class MeshRecord:
@@ -75,8 +72,6 @@ class MeshRecord:
                     break
 
         return matches; 
-
-
 
 class Mark2CureQuery:
 
@@ -170,14 +165,19 @@ class TFIDF:
 
         return matchedRecords
 
-def BuildMeshRecordsFromDisk(xmlFilePath):
+def BuildMeshRecordsFromDisk(xmlFilePath, suppXmlFilePath):
     meshRecords = []
     descTree = lxml.etree.parse(xmlFilePath)
     
     num = 0
+    descriptorUIs = ['D005063']
+
     diseases = descTree.xpath(".//DescriptorRecord/TreeNumberList/TreeNumber[starts-with(text(), 'C')]/../../DescriptorName/String/text()")
     for disease in diseases:
-        synonymNames = descTree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + disease + '"]/../../ConceptList/Concept/TermList/Term/String/text()')
+        descriptorRecord = descTree.xpath('.//DescriptorRecord/DescriptorName/String[text()="' + disease + '"]/../..')[0]
+        synonymNames = descriptorRecord.xpath(".//ConceptList/Concept/TermList/Term/String/text()")
+        descriptorUI = descriptorRecord.xpath(".//DescriptorUI/text()")[0]
+        descriptorUIs.append(descriptorUI)
         synonymsToUse = []
         for synonymName in synonymNames:
             if not synonymName == disease:
@@ -185,6 +185,27 @@ def BuildMeshRecordsFromDisk(xmlFilePath):
 
         meshRecords.append(MeshRecord(disease, synonymsToUse))
 
+        print("Finished " + str(num) + " of " + str(len(diseases)))
+        num = num + 1
+
+    print("Working on supplemental records...")
+
+    num = 0
+    existingSupplementalRecords = []
+    descTree = lxml.etree.parse(suppXmlFilePath)
+    for descriptorUI in descriptorUIs:
+        xpath = ".//SupplementalRecord/HeadingMappedToList/HeadingMappedTo/DescriptorReferredTo/DescriptorUI[text()='*" + descriptorUI + "']/../../../.."
+        supplementalRecords = descTree.xpath(xpath)
+        for supplementalRecord in supplementalRecords:
+            supplementalRecordUI = supplementalRecord.xpath(".//SupplementalRecordUI/text()")[0]
+            if not supplementalRecordUI in existingSupplementalRecords:
+                existingSupplementalRecords.append(supplementalRecordUI)
+
+                disease = supplementalRecord.xpath(".//SupplementalRecordName/String/text()")
+                synonymsToUse = supplementalRecord.xpath(".//ConceptList/Concept/TermList/Term/String/text()")
+                
+                meshRecords.append(MeshRecord(disease, synonymsToUse))
+        
         print("Finished " + str(num) + " of " + str(len(diseases)))
         num = num + 1
 
@@ -229,9 +250,12 @@ def FindRecommendations(query, meshRecords, tfidf, numberOfRecommendations):
                         if possibleMeaning:
                             meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(possibleMeaning, numberOfRecommendations)
 
-                    # STILL nothing!?!
+                    # STILL nothing!?! Just try straight-up looking at the text. 
                     for part in parts: 
                         meshRecordsToReturn = meshRecordsToReturn + tfidf.FindClosestMatches(part, numberOfRecommendations)
+
+    # if we still haven't found anything, 
+    #if len(meshRecordsToReturn) == 0:
 
     return meshRecordsToReturn
 
@@ -267,61 +291,66 @@ def ReadMark2CureQueriesFromDisk(mark2CureFile, minToCount):
 ###########################################################
 
 # work desktop constants
-#nltk.data.path.append('D:/PythonData/nltk_data')
-#descFilePath = 'D:/BioNLP/desc2017.xml'
-#suppFilePath = 'D:/BioNLP/supp2017.xml'
-#pickledDescriptorsPath = 'D:/BioNLP/descriptors.pickle'
-#errorsFilePath = 'D:/BioNLP/errors.txt'
-#matchFilesPath = 'D:/BioNLP/matchFile.txt'
-#mark2CureFile = 'D:/BioNLP/group 25.xml'
-#failureFile = 'D:/BioNLP/failures.txt'
+nltk.data.path.append('D:/PythonData/nltk_data')
+descFilePath = 'D:/BioNLP/desc2017.xml'
+suppFilePath = 'D:/BioNLP/supp2017.xml'
+pickledDescriptorsPath = 'D:/BioNLP/descriptors.pickle'
+errorsFilePath = 'D:/BioNLP/errors.txt'
+matchFilesPath = 'D:/BioNLP/matchFile.txt'
+mark2CureFile = 'D:/BioNLP/group 25.xml'
+failureFile = 'D:/BioNLP/failures.txt'
 
 # surface constants
-nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
-descFilePath = 'c:/users/ben/desktop/BioNLP/desc2017.xml'
-suppFilePath = 'c:/users/ben/desktop/BioNLP/supp2017.xml'
-pickledDescriptorsPath = 'c:/users/ben/desktop/BioNLP/descriptors.pickle'
-errorsFilePath = 'c:/users/ben/desktop/BioNLP/errors.txt'
-matchFilesPath = 'c:/users/ben/desktop/BioNLP/matchFile.txt'
-mark2CureFile = 'c:/users/ben/desktop/BioNLP/group 25.xml'
-failureFile = 'c:/users/ben/desktop/BioNLP/failures.txt'
+#nltk.data.path.append('C:/Users/Ben/AppData/Roaming/nltk_data')
+#descFilePath = 'c:/users/ben/desktop/BioNLP/desc2017.xml'
+#suppFilePath = 'c:/users/ben/desktop/BioNLP/supp2017.xml'
+#pickledDescriptorsPath = 'c:/users/ben/desktop/BioNLP/descriptors.pickle'
+#errorsFilePath = 'c:/users/ben/desktop/BioNLP/errors.txt'
+#matchFilesPath = 'c:/users/ben/desktop/BioNLP/matchFile.txt'
+#mark2CureFile = 'c:/users/ben/desktop/BioNLP/group 25.xml'
+#failureFile = 'c:/users/ben/desktop/BioNLP/failures.txt'
 
 # either read anew and serialize, or deserialize from disk
 print("Reading records disk...")
-#records = BuildMeshRecordsFromDisk(descFilePath)
-#with open(pickledDescriptorsPath, "wb") as p:
-#    pickle.dump(records, p)
-meshRecords = ReadMeshRecordsFromDisk(pickledDescriptorsPath)
+records = BuildMeshRecordsFromDisk(descFilePath, suppFilePath)
+with open(pickledDescriptorsPath, "wb") as p:
+    pickle.dump(records, p)
+#meshRecords = ReadMeshRecordsFromDisk(pickledDescriptorsPath)
 print("...done")
 
-print("Training model from records...")
-tfidf = TFIDF()
-tfidf.TrainModel(meshRecords)
-print("...done")
+#for record in meshRecords:
+#    for synonym in record.Synonyms:
+#        if "dHMN".lower() in synonym.lower():
+#            print()
 
-print("Load Mark2Cure data from disk...")
-mark2CureQueries = ReadMark2CureQueriesFromDisk(mark2CureFile, 4)
-print("...done")
+#print("Training model from records...")
+#tfidf = TFIDF()
+#tfidf.TrainModel(meshRecords)
+#print("...done")
 
-print("Find matches...")
-if os.path.isfile(errorsFilePath):
-    os.remove(errorsFilePath)
-if os.path.isfile(matchFilesPath):
-    os.remove(matchFilesPath)
-errors = open(errorsFilePath, "w+")
-matches = open(matchFilesPath, "w+")
-count = 1
-for mark2CureQuery in mark2CureQueries:
-    recommendations = FindRecommendations(mark2CureQuery, meshRecords, tfidf, 4)
-    if len(recommendations) > 0:
-        matches.write(mark2CureQuery.Tag + "\n")
-        for recommendation in recommendations:
-            matches.write("\t" + recommendation.MainLine + "\n")
-    else:
-        errors.write(mark2CureQuery.Tag + "\n")
-    print(str(count) + " of " + str(len(mark2CureQueries)))
-    count = count + 1
-errors.close()
-matches.close()
+#print("Load Mark2Cure data from disk...")
+#mark2CureQueries = ReadMark2CureQueriesFromDisk(mark2CureFile, 4)
+#print("...done")
 
-print("...done")
+#print("Find matches...")
+#if os.path.isfile(errorsFilePath):
+#    os.remove(errorsFilePath)
+#if os.path.isfile(matchFilesPath):
+#    os.remove(matchFilesPath)
+#errors = open(errorsFilePath, "w+")
+#matches = open(matchFilesPath, "w+")
+#count = 1
+#for mark2CureQuery in mark2CureQueries:
+#    recommendations = FindRecommendations(mark2CureQuery, meshRecords, tfidf, 4)
+#    if len(recommendations) > 0:
+#        matches.write(mark2CureQuery.Tag + "\n")
+#        for recommendation in recommendations:
+#            matches.write("\t" + recommendation.MainLine + "\n")
+#    else:
+#        errors.write(mark2CureQuery.Tag + "\n")
+#    print(str(count) + " of " + str(len(mark2CureQueries)))
+#    count = count + 1
+#errors.close()
+#matches.close()
+
+#print("...done")
