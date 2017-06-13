@@ -63,7 +63,7 @@
     <Compile Include="Experiments\PickleTest.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ReadDescFile.py">
+    <Compile Include="NLTK Examples\ReadDescFile.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Experiments\ReadLargeFile.py">
