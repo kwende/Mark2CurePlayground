@@ -312,10 +312,10 @@ failureFile = 'c:/users/ben/desktop/BioNLP/failures.txt'
 
 # either read anew and serialize, or deserialize from disk
 print("Reading records disk...")
-records = BuildMeshRecordsFromDisk(descFilePath, suppFilePath)
-with open(pickledDescriptorsPath, "wb") as p:
-    pickle.dump(records, p)
-#meshRecords = ReadMeshRecordsFromDisk(pickledDescriptorsPath)
+#records = BuildMeshRecordsFromDisk(descFilePath, suppFilePath)
+#with open(pickledDescriptorsPath, "wb") as p:
+#    pickle.dump(records, p)
+meshRecords = ReadMeshRecordsFromDisk(pickledDescriptorsPath)
 print("...done")
 
 #for record in meshRecords:
@@ -323,34 +323,34 @@ print("...done")
 #        if "dHMN".lower() in synonym.lower():
 #            print()
 
-#print("Training model from records...")
-#tfidf = TFIDF()
-#tfidf.TrainModel(meshRecords)
-#print("...done")
+print("Training model from records...")
+tfidf = TFIDF()
+tfidf.TrainModel(meshRecords)
+print("...done")
 
-#print("Load Mark2Cure data from disk...")
-#mark2CureQueries = ReadMark2CureQueriesFromDisk(mark2CureFile, 4)
-#print("...done")
+print("Load Mark2Cure data from disk...")
+mark2CureQueries = ReadMark2CureQueriesFromDisk(mark2CureFile, 4)
+print("...done")
 
-#print("Find matches...")
-#if os.path.isfile(errorsFilePath):
-#    os.remove(errorsFilePath)
-#if os.path.isfile(matchFilesPath):
-#    os.remove(matchFilesPath)
-#errors = open(errorsFilePath, "w+")
-#matches = open(matchFilesPath, "w+")
-#count = 1
-#for mark2CureQuery in mark2CureQueries:
-#    recommendations = FindRecommendations(mark2CureQuery, meshRecords, tfidf, 4)
-#    if len(recommendations) > 0:
-#        matches.write(mark2CureQuery.Tag + "\n")
-#        for recommendation in recommendations:
-#            matches.write("\t" + recommendation.MainLine + "\n")
-#    else:
-#        errors.write(mark2CureQuery.Tag + "\n")
-#    print(str(count) + " of " + str(len(mark2CureQueries)))
-#    count = count + 1
-#errors.close()
-#matches.close()
+print("Find matches...")
+if os.path.isfile(errorsFilePath):
+    os.remove(errorsFilePath)
+if os.path.isfile(matchFilesPath):
+    os.remove(matchFilesPath)
+errors = open(errorsFilePath, "w+")
+matches = open(matchFilesPath, "w+")
+count = 1
+for mark2CureQuery in mark2CureQueries:
+    recommendations = FindRecommendations(mark2CureQuery, meshRecords, tfidf, 4)
+    if len(recommendations) > 0:
+        matches.write(mark2CureQuery.Tag + "\n")
+        for recommendation in recommendations:
+            matches.write("\t" + recommendation.MainLine + "\n")
+    else:
+        errors.write(mark2CureQuery.Tag + "\n")
+    print(str(count) + " of " + str(len(mark2CureQueries)))
+    count = count + 1
+errors.close()
+matches.close()
 
-#print("...done")
+print("...done")
