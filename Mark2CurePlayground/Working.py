@@ -307,7 +307,7 @@ suppFilePath = 'c:/users/ben/desktop/BioNLP/supp2017.xml'
 pickledDescriptorsPath = 'c:/users/ben/desktop/BioNLP/descriptors.pickle'
 errorsFilePath = 'c:/users/ben/desktop/BioNLP/errors.txt'
 matchFilesPath = 'c:/users/ben/desktop/BioNLP/matchFile.txt'
-mark2CureFile = 'c:/users/ben/desktop/BioNLP/group 25.xml'
+mark2CureFile = 'c:/users/ben/desktop/BioNLP/group 28.xml'
 failureFile = 'c:/users/ben/desktop/BioNLP/failures.txt'
 
 # either read anew and serialize, or deserialize from disk
